@@ -151,12 +151,12 @@ func displayBuiltInVerbs() {
         fmt.Println("Error executing the command:", err)
         return
     }
-	fmt.Println("[ Available Built-in default Verbs ]")
+	fmt.Println("[ Default Built-in available Verbs ]")
     fmt.Println(string(output))
 }
 
 
-// 여기에 clusterrole을 보여주는 로직을 넣습니다.
+// function for draw table and display clusterroles
 func displayClusterRoles(excludeSystem bool, systemPrefixes []string) {
 	
 	cmd := exec.Command("kubectl", "get", "clusterroles", "-o", "json")
