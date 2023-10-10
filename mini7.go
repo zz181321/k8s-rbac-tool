@@ -8,6 +8,7 @@ import (
 	"text/tabwriter"
 	"strings"
 	"flag"
+	"sort"
 )
 
 type ClusterRole struct {
@@ -33,8 +34,24 @@ type ClusterRule struct {
 	Verbs         []string `json:"verbs"`
 }
 
+// structure for sorting
+type ByAPIGroup []ClusterRule
 
-func hasExcludedPrefix(s string, prefixes []string) bool { //for --nosys prefix filter
+func (a ByAPIGroup) Len() int { return len(a) }
+func (a ByAPIGroup) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a ByAPIGroup) Less(i, j int) bool {
+	if len(a[i].APIGroups) == 0 {
+		return true
+	}
+	if len(a[j].APIGroups) == 0 {
+		return false
+	}
+	return a[i].APIGroups[0] < a[j].APIGroups[0] // 첫번째 apiGroup을 기준으로 정렬
+}
+
+
+//--nosys prefix filter
+func hasExcludedPrefix(s string, prefixes []string) bool {
 	for _, prefix := range prefixes {
 		if strings.HasPrefix(s, prefix) {
 			return true
@@ -82,6 +99,10 @@ var clusterRolesList struct {
 err = json.Unmarshal(out, &clusterRolesList)
 if err != nil {
 	panic(err)
+}
+
+for i := range clusterRoleList.Items {
+	sort.Srot(BYAPIGroup(clusterRoleList.Items[i].Rules))
 }
 
 
