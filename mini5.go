@@ -56,7 +56,7 @@ if err != nil {
 
 w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
 fmt.Fprintln(w, "User\tKind\tRole(Name)\tapiGroups\tResources\tVerbs")
-fmt.Fprintln(w, "----\t----\t----------\t---------\t---------\t-----")
+fmt.Fprintln(w, "----\t-----------\t----------\t---------\t---------\t-----")
 
 for _, role := range clusterRolesList.Items {
 	if nosys && strings.HasPrefix(role.Metadata.Name, "system:") || strings.HasPrefix(role.Metadata.Name, "kubeadm:") {
@@ -76,7 +76,7 @@ for _, role := range clusterRolesList.Items {
         }
     }
     if printedHeaderForRole { // 만약 규칙이 있으면 구분자 출력
-        fmt.Fprintln(w, "----\t----\t----------\t---------\t---------\t-----")
+        fmt.Fprintln(w, "----\t-----------\t----------\t---------\t---------\t-----")
     }
 }
 
