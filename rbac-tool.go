@@ -11,7 +11,7 @@ import (
 	"sort"
 )
 
-// structure for ClusterRoles
+// structure for Roles
 type Role struct {
 	APIVersion string       `json:"apiVersion"`
 	Kind       string       `json:"kind"`
@@ -34,6 +34,31 @@ type RoleRule struct {
 	Resources     []string `json:"resources"`
 	Verbs         []string `json:"verbs"`
 }
+
+// Structure for ClusterRoles
+type ClusterRole struct {
+	APIVersion string              `json:"apiVersion"`
+	Kind       string              `json:"kind"`
+	Metadata   ClusterRoleMetadata `json:"metadata"`
+	Rules      []ClusterRoleRule   `json:"rules"`
+}
+
+type ClusterRoleMetadata struct {
+	Annotations        map[string]string `json:"annotations"`
+	CreationTimestamp  string            `json:"creationTimestamp"`
+	Labels             map[string]string `json:"labels"`
+	Name               string            `json:"name"`
+	ResourceVersion    string            `json:"resourceVersion"`
+	UID                string            `json:"uid"`
+}
+
+type ClusterRoleRule struct {
+	APIGroups     []string `json:"apiGroups"`
+	ResourceNames []string `json:"resourceNames,omitempty"`
+	Resources     []string `json:"resources"`
+	Verbs         []string `json:"verbs"`
+}
+
 
 
 // Structure for sorting rules by APIGroup
