@@ -156,7 +156,7 @@ func displayBuiltInVerbs() {
 }
 
 
-// function for draw table and display clusterroles
+// function for drawing a table and displaying Cluster Roles
 func displayClusterRoles(excludeSystem bool, systemPrefixes []string) {
 	
 	cmd := exec.Command("kubectl", "get", "clusterroles", "-o", "json")
