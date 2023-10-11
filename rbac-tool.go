@@ -188,7 +188,7 @@ func displayRoles(excludeSystem bool, systemPrefixes []string) {
     }
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
     fmt.Fprintln(w, "Namespace\tKind\tRole (Name)\tapiGroups\tResources\tVerbs")
-    fmt.Fprintln(w, "---------\t----\t---------\t----------\t---------\t------")
+    fmt.Fprintln(w, "---------\t----\t---------\t---------\t---------\t----")
     for _, role := range rolesList.Items {
         if excludeSystem && isSystemRole(role.Metadata.Name, systemPrefixes) {
             continue
@@ -210,7 +210,7 @@ func displayRoles(excludeSystem bool, systemPrefixes []string) {
         }
         
         if displayedHeader {
-            fmt.Fprintln(w, "---------\t----\t---------\t----------\t---------\t------")
+            fmt.Fprintln(w, "---------\t----\t---------\t---------\t---------\t----")
         }
     }
     w.Flush()
@@ -239,7 +239,7 @@ func displayClusterRoles(excludeSystem bool, systemPrefixes []string) {
     }
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
     fmt.Fprintln(w, "Kind\tRole (Name)\tapiGroups\tResources\tVerbs")
-    fmt.Fprintln(w, "-----------\t---------\t----------\t---------\t------")
+    fmt.Fprintln(w, "-----------\t---------\t---------\t---------\t------")
     for _, role := range rolesList.Items {
         if excludeSystem && isSystemRole(role.Metadata.Name, systemPrefixes) {
             continue
@@ -260,7 +260,7 @@ func displayClusterRoles(excludeSystem bool, systemPrefixes []string) {
             }
         }
         if displayedHeader {
-            fmt.Fprintln(w, "-----------\t---------\t----------\t---------\t------")
+            fmt.Fprintln(w, "-----------\t---------\t---------\t---------\t------")
         }
     }
     w.Flush()
