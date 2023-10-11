@@ -151,7 +151,7 @@ func displayBuiltInVerbs() {
         fmt.Println("Error executing the command:", err)
         return
     }
-	fmt.Println("[ Default Built-in available Verbs ]")
+	fmt.Println("# Built-in Default Available Verbs")
     fmt.Println(string(output))
 }
 
@@ -212,7 +212,7 @@ func displayClusterRoles(excludeSystem bool, systemPrefixes []string) {
 
 
 func main() {
-    systemPrefixes := []string{"system:", "kubeadm:", "calico"}
+    systemPrefixes := []string{"system:", "kubeadm:", "calico","kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
 
     var tableOption string
     var excludeSystem bool
