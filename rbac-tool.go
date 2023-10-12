@@ -233,37 +233,38 @@ func displayClusterRoles(excludeSystem bool, systemPrefixes []string) {
         return
     }
     //sort apiGroups, and merge Verbs
-    for i := range rolesList.Items {
-        rolesList.Items[i].Rules = mergeRules(rolesList.Items[i].Rules)
-        sort.Sort(SortByAPIGroup(rolesList.Items[i].Rules))
-    }
-    w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
-    fmt.Fprintln(w, "Kind\tRole (Name)\tapiGroups\tResources\tVerbs")
-    fmt.Fprintln(w, "-----------\t---------\t---------\t---------\t------")
-    for _, role := range rolesList.Items {
-        if excludeSystem && isSystemRole(role.Metadata.Name, systemPrefixes) {
-            continue
-        }
-        displayedHeader := false
-        for _, rule := range role.Rules {
-            for idx, apiGroup := range rule.APIGroups {
-                for _, resource := range rule.Resources {
-                    if idx == 0 && !displayedHeader {
-                        // 첫 번째 apiGroup일 경우 메인 행에 출력
-                        fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t [%s]\n", role.Metadata.Namespace, role.Kind, role.Metadata.Name, apiGroup, resource, strings.Join(rule.Verbs, ", "))
-                        displayedHeader = true
-                    } else {
-                        // 나머지 apiGroup일 경우 별도의 행에 출력
-                        fmt.Fprintf(w, "\t\t\t%s\t%s\t [%s]\n", apiGroup, resource, strings.Join(rule.Verbs, ", "))
-                    }
-                }
-            }
-        }
-        if displayedHeader {
-            fmt.Fprintln(w, "-----------\t---------\t---------\t---------\t------")
-        }
-    }
-    w.Flush()
+	for i := range rolesList.Items {
+		rolesList.Items[i].Rules = mergeRules(rolesList.Items[i].Rules)
+		sort.Sort(SortByAPIGroup(rolesList.Items[i].Rules))
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
+	fmt.Fprintln(w, "Kind\tRole (Name)\tapiGroups\tResources\tVerbs")
+	fmt.Fprintln(w, "-----------\t---------\t----------\t---------\t------")
+
+	for _, role := range rolesList.Items {
+		if excludeSystem && isSystemRole(role.Metadata.Name, systemPrefixes) {
+			continue
+		}
+		displayedHeader := false
+		for _, rule := range role.Rules {
+			for _, apiGroup := range rule.APIGroups {
+				for _, resource := range rule.Resources {
+					if !displayedHeader {
+						fmt.Fprintf(w, "%s\t%s\t%s\t%s\t [%s]\n", role.Kind, role.Metadata.Name, apiGroup, resource, strings.Join(rule.Verbs, ", "))
+						displayedHeader = true
+					} else {
+						fmt.Fprintf(w, "\t\t%s\t%s\t [%s]\n", apiGroup, resource, strings.Join(rule.Verbs, ", "))
+					}
+				}
+			}
+		}
+		if displayedHeader {
+			fmt.Fprintln(w, "-----------\t---------\t----------\t---------\t------")
+		}
+	}
+
+	w.Flush()
 }
 
 func main() {
