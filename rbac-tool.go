@@ -9,7 +9,7 @@ import (
     "flag"
     "sort"
 )
-// structure for Roles (Normally, they are attributed to a NAMESPACE)
+// structure for Roles (Typically, roles are associated with a NAMESPACE.)
 type Role struct {
     APIVersion string       `json:"apiVersion"`
     Kind       string       `json:"kind"`
@@ -68,7 +68,7 @@ func (a SortByAPIGroup) Less(i, j int) bool {
     return a[i].APIGroups[0] < a[j].APIGroups[0] 
 }
 
-// merge Verbs
+// merge Verbs from rules.
 func mergeRules(rules []RoleRule) []RoleRule {
     merged := make(map[string]map[string]map[string]struct{})
     allVerbs := map[string]struct{}{
@@ -107,7 +107,7 @@ func mergeRules(rules []RoleRule) []RoleRule {
                 resourceVerbMap[resource][verb] = struct{}{}
             }
         }
-        // 리소스를 오름차순으로 정렬
+        // Sort the Resources in ascending order (오름차순)
         var sortedResources []string
         for resource := range resourceVerbMap {
             sortedResources = append(sortedResources, resource)
@@ -149,7 +149,7 @@ func displayUsage() {
     fmt.Println("Usage:")
     fmt.Println("./rbac-tool --table clusterrole       Display cluster roles in a table format.")
     fmt.Println("./rbac-tool --table role              Display roles in a table format.")
-    fmt.Println("./rbac-tool --table <role OR clusterrole> --nosys  Display roles or cluster roles in a table format excluding default built-in system roles.")
+    fmt.Println("./rbac-tool --table [ role ] OR [ clusterrole ] --nosys  Display roles or cluster roles in a table format excluding default built-in system roles.")
     fmt.Println("./rbac-tool --verbs                   Display all available verbs from api-resources.")
 }
 
@@ -179,9 +179,10 @@ func displayBuiltInVerbs() {
 }
 
 
-// 4 functions for Roles & ClusterRoles
+// The following 4 functions handle Kubernetes RBAC data and display for Roles & ClusterRoles:
+// dataStoreRoles, dataStoreClusterRoles, displayRoles, displayClusterRoles
 
-// Role 데이터를 저장하는 함수
+// store data for Roles
 func dataStoreRoles() ([]Role, error) {
     cmd := exec.Command("kubectl", "get", "roles", "-A", "-o", "json")
     output, err := cmd.Output()
@@ -207,7 +208,7 @@ func dataStoreRoles() ([]Role, error) {
     return rolesList.Items, nil
 }
 
-// Cluster Role 데이터를 저장하는 함수
+// store data for Cluster Roles
 func dataStoreClusterRoles() ([]Role, error) {
     cmd := exec.Command("kubectl", "get", "clusterroles", "-o", "json")
     output, err := cmd.Output()
@@ -283,7 +284,7 @@ func displayClusterRoles(roles []Role, excludeSystem bool, systemPrefixes []stri
 			for _, apiGroup := range rule.APIGroups {
 				for _, resource := range rule.Resources {
 					if !displayedHeader {
-						fmt.Fprintf(w, " %s\t%s\t%s\t%s\t [%s]\n", role.Kind, role.Metadata.Name, apiGroup, resource, strings.Join(rule.Verbs, ", "))
+						fmt.Fprintf(w, "%s\t%s\t%s\t%s\t [%s]\n", role.Kind, role.Metadata.Name, apiGroup, resource, strings.Join(rule.Verbs, ", "))
 						displayedHeader = true
 					} else {
 						fmt.Fprintf(w, "\t\t%s\t%s\t [%s]\n", apiGroup, resource, strings.Join(rule.Verbs, ", "))
@@ -308,21 +309,24 @@ func main() {
         return
     }
 
+    roles1, err := dataStoreClusterRoles()
+        if err != nil {
+            fmt.Println("Error getting data:", err)
+            return
+        }
+    
+    roles2, err := dataStoreRoles()
+        if err != nil {
+            fmt.Println("Error getting data:", err)
+            return
+        }
+
+
     switch tableOption {
-    case "clusterrole":
-        roles, err := dataStoreClusterRoles()
-        if err != nil {
-            fmt.Println("Error getting data:", err)
-            return
-        }
-        displayClusterRoles(roles, excludeSystem, systemPrefixes)
-    case "role":
-        roles, err := dataStoreRoles()
-        if err != nil {
-            fmt.Println("Error getting data:", err)
-            return
-        }
-        displayRoles(roles, excludeSystem, systemPrefixes)
+    case "clusterrole":        
+        displayClusterRoles(roles1, excludeSystem, systemPrefixes)
+    case "role":        
+        displayRoles(roles2, excludeSystem, systemPrefixes)
     default:
         displayUsage()
     }
