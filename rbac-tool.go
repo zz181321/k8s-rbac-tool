@@ -309,13 +309,13 @@ func main() {
         return
     }
 
-    roles1, err := dataStoreClusterRoles()
+    RefinedClusterRoles, err := dataStoreClusterRoles()
         if err != nil {
             fmt.Println("Error getting data:", err)
             return
         }
     
-    roles2, err := dataStoreRoles()
+    RefinedRoles, err := dataStoreRoles()
         if err != nil {
             fmt.Println("Error getting data:", err)
             return
@@ -324,13 +324,10 @@ func main() {
 
     switch tableOption {
     case "clusterrole":        
-        displayClusterRoles(roles1, excludeSystem, systemPrefixes)
+        displayClusterRoles(RefinedClusterRoles, excludeSystem, systemPrefixes)
     case "role":        
-        displayRoles(roles2, excludeSystem, systemPrefixes)
+        displayRoles(RefinedRoles, excludeSystem, systemPrefixes)
     default:
         displayUsage()
     }
 }
-
-
-
