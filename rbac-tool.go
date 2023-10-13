@@ -330,6 +330,12 @@ func displayClusterRoles(roles []Role, excludeSystem bool, systemPrefixes []stri
 }
 
 
+// following functions handle Cluster Role Bindinds
+
+func dataStoreClusterBindings() {
+
+}
+
 func displayClusterRoleBindings(bindings []ClusterRoleBinding) {
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
     fmt.Fprintln(w, "Kind\tBinding Name\tAPIGroup\tRole Kind\tRole Name\tSubject Kind\tSubject Name\tSubject Namespace")
@@ -357,7 +363,6 @@ func displayClusterRoleBindings(bindings []ClusterRoleBinding) {
     w.Flush()
 }
 
-
 func main() {
     systemPrefixes := []string{"system:", "kubeadm:", "calico","kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
 
@@ -370,20 +375,27 @@ func main() {
 
     RefinedClusterRoles, err := dataStoreClusterRoles()
         if err != nil {
-            fmt.Println("Error getting data:", err)
+            fmt.Println("Error getting Cluster Role data:", err)
             return
         }
     
     RefinedRoles, err := dataStoreRoles()
         if err != nil {
-            fmt.Println("Error getting data:", err)
+            fmt.Println("Error getting Role data:", err)
             return
         }
 
+    RefinedClusterBindings, err := dataStoreClusterBindings()
+        if err != nil {
+            fmt.Println("Error getting Cluster Role Binding data:", err)
+            return
+        }
 
     switch tableOption {
     case "clusterrole":        
         displayClusterRoles(RefinedClusterRoles, excludeSystem, systemPrefixes)
+    case "clusterbinding":        
+        displayClusterRolebindings(RefinedClusterBindings, excludeSystem, systemPrefixes)
     case "role":        
         displayRoles(RefinedRoles, excludeSystem, systemPrefixes)
     default:
