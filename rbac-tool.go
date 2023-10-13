@@ -9,7 +9,7 @@ import (
     "flag"
     "sort"
 )
-// structure for Roles (Typically, roles are associated with a NAMESPACE.)
+// structures for Roles (Typically, roles are associated with a NAMESPACE.)
 type Role struct {
     APIVersion string       `json:"apiVersion"`
     Kind       string       `json:"kind"`
@@ -31,7 +31,7 @@ type RoleRule struct {
     Resources     []string `json:"resources"`
     Verbs         []string `json:"verbs"`
 }
-// Structure for ClusterRoles
+// Structures for ClusterRoles
 type ClusterRole struct {
     APIVersion string              `json:"apiVersion"`
     Kind       string              `json:"kind"`
@@ -52,6 +52,36 @@ type ClusterRoleRule struct {
     Resources     []string `json:"resources"`
     Verbs         []string `json:"verbs"`
 }
+
+// Structures for Cluster Role Bindings
+type ClusterRoleBinding struct {
+	APIVersion string                 `json:"apiVersion"`
+	Kind       string                 `json:"kind"`
+	Metadata   ClusterRoleBindingMeta `json:"metadata"`
+	RoleRef    ClusterRoleRef         `json:"roleRef"`
+	Subjects   []ClusterSubject       `json:"subjects"`
+}
+
+type ClusterRoleBindingMeta struct {
+	Annotations        map[string]string `json:"annotations"`
+	CreationTimestamp  string            `json:"creationTimestamp"`
+	Name               string            `json:"name"`
+	ResourceVersion    string            `json:"resourceVersion"`
+	UID                string            `json:"uid"`
+}
+
+type ClusterRoleRef struct {
+	APIGroup string `json:"apiGroup"`
+	Kind     string `json:"kind"`
+	Name     string `json:"name"`
+}
+
+type ClusterSubject struct {
+	Kind      string `json:"kind"`
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+}
+
 
 
 // Structure for sorting rules by APIGroup
@@ -235,7 +265,7 @@ func dataStoreClusterRoles() ([]Role, error) {
 }
 
 
-// function for drawing a table and displaying Normal Roles
+// function for drawing a table and displaying typical Roles
 func displayRoles(roles []Role, excludeSystem bool, systemPrefixes []string) {
 
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
@@ -298,6 +328,35 @@ func displayClusterRoles(roles []Role, excludeSystem bool, systemPrefixes []stri
 	}
 	w.Flush()
 }
+
+
+func displayClusterRoleBindings(bindings []ClusterRoleBinding) {
+    w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
+    fmt.Fprintln(w, "Kind\tBinding Name\tAPIGroup\tRole Kind\tRole Name\tSubject Kind\tSubject Name\tSubject Namespace")
+    fmt.Fprintln(w, "----\t------------\t--------\t---------\t---------\t------------\t------------\t-----------------")
+
+    for _, binding := range bindings {
+		// Display main details
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t", binding.Kind, binding.Metadata.Name, binding.RoleRef.APIGroup, binding.RoleRef.Kind, binding.RoleRef.Name)
+
+		// If there are multiple subjects, we'll display them in separate lines
+		displayedHeader := false
+		for _, subject := range binding.Subjects {
+			if displayedHeader {
+				fmt.Fprintf(w, "\t\t\t\t\t%s\t%s\t%s\n", subject.Kind, subject.Name, subject.Namespace)
+			} else {
+				fmt.Fprintf(w, "%s\t%s\t%s\n", subject.Kind, subject.Name, subject.Namespace)
+				displayedHeader = true
+			}
+		}
+		// Print a separator for readability
+		if displayedHeader {
+			fmt.Fprintln(w, "-----\t------------\t---------------\t------------\t------------\t-----------\t------------\t----------------")
+		}
+    }
+    w.Flush()
+}
+
 
 func main() {
     systemPrefixes := []string{"system:", "kubeadm:", "calico","kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
