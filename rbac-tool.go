@@ -83,6 +83,39 @@ type ClusterSubject struct {
 }
 
 
+// Structures for Role Bindings
+type RoleBinding struct {
+    ApiVersion string   `json:"apiVersion"`
+    Kind       string   `json:"kind"`
+    Metadata   RoleBindingMeta `json:"metadata"`
+    RoleRef    BindingRoleRef  `json:"roleRef"`
+    Subjects   []BindingSubject `json:"subjects"`
+}
+
+type RoleBindingMeta struct {
+    CreationTimestamp string            `json:"creationTimestamp"`
+    Name              string            `json:"name"`
+    Namespace         string            `json:"namespace,omitempty"`
+    ResourceVersion   string            `json:"resourceVersion"`
+    UID               string            `json:"uid"`
+    Annotations       map[string]string `json:"annotations,omitempty"`
+    Labels            map[string]string `json:"labels,omitempty"`
+}
+
+type BindingRoleRef struct {
+    ApiGroup string `json:"apiGroup"`
+    Kind     string `json:"kind"`
+    Name     string `json:"name"`
+}
+
+type BindingSubject struct {
+    ApiGroup  string `json:"apiGroup,omitempty"`
+    Kind      string `json:"kind"`
+    Name      string `json:"name"`
+    Namespace string `json:"namespace,omitempty"`
+}
+
+
 
 // Structure for sorting rules by APIGroup
 type SortByAPIGroup []RoleRule
@@ -355,6 +388,7 @@ func dataStoreClusterBindings() ([]ClusterRoleBinding, error) {
     return bindingsList.Items, nil
 }
 
+
 func displayClusterRoleBindings(bindings []ClusterRoleBinding, excludeSystem bool, systemPrefixes []string) {
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
     fmt.Fprintln(w, "Binding Kind\tBinding Name\tRole Kind\tReference(Role Name)\tAccount Kind\tAccount Name\tNamespace")
@@ -382,6 +416,67 @@ func displayClusterRoleBindings(bindings []ClusterRoleBinding, excludeSystem boo
             // Only print the separator line after the last subject of a binding
             if index == len(binding.Subjects) - 1 {
                 fmt.Fprintln(w, "------------------\t------------\t-----------\t---------\t------------\t------------\t---------")
+            }
+        }
+    }
+    w.Flush()
+}
+
+
+
+
+// following functions handle Role Bindinds
+
+func dataStoreRoleBindings() ([]RoleBinding, error) {
+    // Run the kubectl command to get cluster role bindings
+    cmd := exec.Command("kubectl", "get", "rolebindings", "-A", "-o", "json")
+    output, err := cmd.Output()
+    if err != nil {
+        return nil, err
+    }
+
+    // Define a wrapper structure for the list of cluster role bindings
+    var bindingsList struct {
+        Items []RoleBinding `json:"items"`
+    }
+
+    // Unmarshal the JSON output into our wrapper structure
+    err = json.Unmarshal(output, &bindingsList)
+    if err != nil {
+        return nil, err
+    }
+
+    return bindingsList.Items, nil
+}
+
+func displayRoleBindings(bindings []RoleBinding, excludeSystem bool, systemPrefixes []string) {
+    w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
+    fmt.Fprintln(w, "Kind\tMetadata Name\tMetadata Namespace\tRoleRef Kind\tRoleRef Name\tSubject Kind\tSubject Name\tSubject Namespace")
+    fmt.Fprintln(w, "--------\t--------------\t------------------\t------------\t------------\t------------\t------------\t-----------------")
+
+    for _, binding := range bindings {
+        if excludeSystem && isSystemPrefix(binding.Metadata.Name, systemPrefixes) {
+            continue
+        }
+        displayedHeader := false
+        for index, subject := range binding.Subjects {
+            namespace := subject.Namespace
+            if namespace == "" {
+                namespace = "-"
+            }
+
+            if !displayedHeader {
+                fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", 
+                    binding.Kind, binding.Metadata.Name, binding.Metadata.Namespace, binding.RoleRef.Kind, 
+                    binding.RoleRef.Name, subject.Kind, subject.Name, namespace)
+                displayedHeader = true
+            } else {
+                fmt.Fprintf(w, "\t\t\t\t\t%s\t%s\t%s\n", subject.Kind, subject.Name, namespace)  
+            }
+
+            // Only print the separator line after the last subject of a binding
+            if index == len(binding.Subjects) - 1 {
+                fmt.Fprintln(w, "--------\t--------------\t------------------\t------------\t------------\t------------\t------------\t-----------------")
             }
         }
     }
@@ -418,15 +513,25 @@ func main() {
         fmt.Println("Error getting Cluster Role Binding data:", err)
         return
     }
+    
+    refinedRoleBindings, err := dataStoreRoleBindings()
+    if err != nil {
+        fmt.Println("Error getting Role Binding data:", err)
+        return
+    }
+
 
     switch tableOption {
     case "clusterrole":
         displayClusterRoles(refinedClusterRoles, excludeSystem, systemPrefixes)
-    case "clusterbinding":
+    case "clusterrolebinding":
         displayClusterRoleBindings(refinedClusterBindings, excludeSystem, systemPrefixes)
     case "role":
         displayRoles(refinedRoles, excludeSystem, systemPrefixes)
+    case "rolebinding":
+        displayRoleBindings(refinedRoleBindings, excludeSystem, systemPrefixes)
     default:
         displayUsage()
     }
 }
+
