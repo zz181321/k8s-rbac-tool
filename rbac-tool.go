@@ -355,19 +355,17 @@ func dataStoreClusterBindings() ([]ClusterRoleBinding, error) {
     return bindingsList.Items, nil
 }
 
-
-
 func displayClusterRoleBindings(bindings []ClusterRoleBinding, excludeSystem bool, systemPrefixes []string) {
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
-    fmt.Fprintln(w, "Binding Kind\tBinding Name\tRole Kind\tReference(Role Name)\tSubject Kind\tSubject Name\tSubject Namespace")
-    fmt.Fprintln(w, "------------------\t------------\t-----------\t---------\t------------\t------------\t-----------------")
+    fmt.Fprintln(w, "Binding Kind\tBinding Name\tRole Kind\tReference(Role Name)\tAccount Kind\tAccount Name\tNamespace")
+    fmt.Fprintln(w, "------------------\t------------\t-----------\t---------\t------------\t------------\t---------")
 
     for _, binding := range bindings {
         if excludeSystem && isSystemPrefix(binding.Metadata.Name, systemPrefixes) {
             continue
         }
         displayedHeader := false
-        for _, subject := range binding.Subjects {
+        for index, subject := range binding.Subjects {
             namespace := subject.Namespace
             if namespace == "" {
                 namespace = "-"
@@ -375,19 +373,21 @@ func displayClusterRoleBindings(bindings []ClusterRoleBinding, excludeSystem boo
 
             if !displayedHeader {
                 fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", 
-                    binding.Kind, binding.Metadata.Name, binding.RoleRef.Kind, binding.RoleRef.Name, 
-                    subject.Kind, subject.Name, namespace)
+                    binding.Kind, binding.Metadata.Name, binding.RoleRef.Kind, binding.RoleRef.Name, subject.Kind, subject.Name, namespace)
                 displayedHeader = true
             } else {
-                fmt.Fprintf(w, "\t\t\t\t\t%s\t%s\t%s\n", subject.Kind, subject.Name, namespace)
+                fmt.Fprintf(w, "\t\t\t\t%s\t%s\t%s\n", subject.Kind, subject.Name, namespace)  
             }
-        }
-        if displayedHeader {
-            fmt.Fprintln(w, "------------------\t------------\t-----------\t---------\t------------\t------------\t-----------------")
+
+            // Only print the separator line after the last subject of a binding
+            if index == len(binding.Subjects) - 1 {
+                fmt.Fprintln(w, "------------------\t------------\t-----------\t---------\t------------\t------------\t---------")
+            }
         }
     }
     w.Flush()
 }
+
 
 
 func main() {
