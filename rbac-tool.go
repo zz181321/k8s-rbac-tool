@@ -166,18 +166,9 @@ func mergeRules(rules []RoleRule) []RoleRule {
 
 
 // Check if the role name has a default system prefix
-func isSystemRole(roleName string, prefixes []string) bool {
+func isSystemPrefix(itemName string, prefixes []string) bool {
     for _, prefix := range prefixes {
-        if strings.HasPrefix(roleName, prefix) {
-            return true
-        }
-    }
-    return false
-}
-
-func isSystemBinding(bindingName string, systemPrefixes []string) bool {
-    for _, prefix := range systemPrefixes {
-        if strings.HasPrefix(bindingName, prefix) {
+        if strings.HasPrefix(itemName, prefix) {
             return true
         }
     }
@@ -282,7 +273,7 @@ func displayRoles(roles []Role, excludeSystem bool, systemPrefixes []string) {
     fmt.Fprintln(w, "Namespace\tKind\tRole (Name)\tapiGroups\tResources\tVerbs")
     fmt.Fprintln(w, "---------\t----\t---------\t---------\t---------\t----")
     for _, role := range roles {
-        if excludeSystem && isSystemRole(role.Metadata.Name, systemPrefixes) {
+        if excludeSystem && isSystemPrefix(role.Metadata.Name, systemPrefixes) {
             continue
         }
         displayedHeader := false
@@ -316,7 +307,7 @@ func displayClusterRoles(roles []Role, excludeSystem bool, systemPrefixes []stri
 	fmt.Fprintln(w, "-----------\t---------\t----------\t---------\t------")
 
 	for _, role := range roles {
-		if excludeSystem && isSystemRole(role.Metadata.Name, systemPrefixes) {
+		if excludeSystem && isSystemPrefix(role.Metadata.Name, systemPrefixes) {
 			continue
 		}
 		displayedHeader := false
@@ -369,10 +360,10 @@ func dataStoreClusterBindings() ([]ClusterRoleBinding, error) {
 func displayClusterRoleBindings(bindings []ClusterRoleBinding, excludeSystem bool, systemPrefixes []string) {
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
     fmt.Fprintln(w, "Kind\tBinding Name\tAPIGroup\tRole Kind\tRole Name\tSubject Kind\tSubject Name\tSubject Namespace")
-    fmt.Fprintln(w, "-----\t------------\t--------\t---------\t---------\t------------\t------------\t----------------")
+    fmt.Fprintln(w, "-----\t------------\t---------\t---------\t------------\t------------\t----------------")
 
     for _, binding := range bindings {
-        if excludeSystem && isSystemBinding(binding.Metadata.Name, systemPrefixes) {
+        if excludeSystem && isSystemPrefix(binding.Metadata.Name, systemPrefixes) {
             continue
         }
         displayedHeader := false
@@ -383,8 +374,8 @@ func displayClusterRoleBindings(bindings []ClusterRoleBinding, excludeSystem boo
             }
 
             if !displayedHeader {
-                fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", 
-                    binding.Kind, binding.Metadata.Name, binding.RoleRef.APIGroup, binding.RoleRef.Kind, binding.RoleRef.Name, 
+                fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", 
+                    binding.Kind, binding.Metadata.Name, binding.RoleRef.Kind, binding.RoleRef.Name, 
                     subject.Kind, subject.Name, namespace)
                 displayedHeader = true
             } else {
@@ -392,7 +383,7 @@ func displayClusterRoleBindings(bindings []ClusterRoleBinding, excludeSystem boo
             }
         }
         if displayedHeader {
-            fmt.Fprintln(w, "-----\t------------\t--------\t---------\t---------\t------------\t------------\t----------------")
+            fmt.Fprintln(w, "-----\t------------\t---------\t---------\t------------\t------------\t----------------")
         }
     }
     w.Flush()
