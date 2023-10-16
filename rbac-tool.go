@@ -175,6 +175,16 @@ func isSystemRole(roleName string, prefixes []string) bool {
     return false
 }
 
+func isSystemBinding(bindingName string, systemPrefixes []string) bool {
+    for _, prefix := range systemPrefixes {
+        if strings.HasPrefix(bindingName, prefix) {
+            return true
+        }
+    }
+    return false
+}
+
+
 func displayUsage() {
     fmt.Println("Usage:")
     fmt.Println("./rbac-tool --table clusterrole       Display cluster roles in a table format.")
@@ -355,39 +365,43 @@ func dataStoreClusterBindings() ([]ClusterRoleBinding, error) {
 }
 
 
+
 func displayClusterRoleBindings(bindings []ClusterRoleBinding, excludeSystem bool, systemPrefixes []string) {
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
     fmt.Fprintln(w, "Kind\tBinding Name\tAPIGroup\tRole Kind\tRole Name\tSubject Kind\tSubject Name\tSubject Namespace")
-    fmt.Fprintln(w, "----\t------------\t--------\t---------\t---------\t------------\t------------\t-----------------")
+    fmt.Fprintln(w, "-----\t------------\t--------\t---------\t---------\t------------\t------------\t----------------")
 
     for _, binding := range bindings {
-		// Display main details
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t", binding.Kind, binding.Metadata.Name, binding.RoleRef.APIGroup, binding.RoleRef.Kind, binding.RoleRef.Name)
+        if excludeSystem && isSystemBinding(binding.Metadata.Name, systemPrefixes) {
+            continue
+        }
+        displayedHeader := false
+        for _, subject := range binding.Subjects {
+            namespace := subject.Namespace
+            if namespace == "" {
+                namespace = "-"
+            }
 
-		if excludeSystem && isSystemRole(binding.Metadata.Name, systemPrefixes) {
-			continue
-		}
-		// If there are multiple subjects, we'll display them in separate lines
-		displayedHeader := false
-		for _, subject := range binding.Subjects {
-			if displayedHeader {
-				fmt.Fprintf(w, "\t\t\t\t\t%s\t%s\t%s\n", subject.Kind, subject.Name, subject.Namespace)
-			} else {
-				fmt.Fprintf(w, "%s\t%s\t%s\n", subject.Kind, subject.Name, subject.Namespace)
-				displayedHeader = true
-			}
-		}
-		// Print a separator for readability
-		if displayedHeader {
-			fmt.Fprintln(w, "-----\t------------\t---------------\t------------\t------------\t-----------\t------------\t----------------")
-		}
+            if !displayedHeader {
+                fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", 
+                    binding.Kind, binding.Metadata.Name, binding.RoleRef.APIGroup, binding.RoleRef.Kind, binding.RoleRef.Name, 
+                    subject.Kind, subject.Name, namespace)
+                displayedHeader = true
+            } else {
+                fmt.Fprintf(w, "\t\t\t\t\t%s\t%s\t%s\n", subject.Kind, subject.Name, namespace)
+            }
+        }
+        if displayedHeader {
+            fmt.Fprintln(w, "-----\t------------\t--------\t---------\t---------\t------------\t------------\t----------------")
+        }
     }
     w.Flush()
 }
 
 
 func main() {
-    systemPrefixes := []string{"system:", "kubeadm:", "calico","kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
+//    systemPrefixes := []string{"system:", "kubeadm:", "calico","kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
+    systemPrefixes := []string{"system:", "kubeadm:", "kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
     tableOption, excludeSystem, verbsOption := parseInputFlags()
     
     if verbsOption {
