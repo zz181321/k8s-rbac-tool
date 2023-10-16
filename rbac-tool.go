@@ -208,15 +208,27 @@ func isSystemPrefix(itemName string, prefixes []string) bool {
     return false
 }
 
-
 func displayUsage() {
-    fmt.Println("Usage:")
-    fmt.Println("./rbac-tool --table clusterrole       Display cluster roles in a table format.")
-    fmt.Println("./rbac-tool --table role              Display roles in a table format.")
-    fmt.Println("./rbac-tool --table [ role ] OR [ clusterrole ] --nosys  Display roles or cluster roles in a table format excluding default built-in system roles.")
-    fmt.Println("./rbac-tool --verbs                   Display all available verbs from api-resources.")
-}
+    fmt.Println("===== RBAC Tool Usage =====")
+    
+    // Display tables section
+    fmt.Println("\n[Display Tables for Validating RBAC Data]")
+    fmt.Println("  go run rbac-tool.go --table <type> [--nosys]")
+    fmt.Println("    <type>: role | rolebinding | clusterrole | clusterrolebinding")
+    fmt.Println("    --nosys: Exclude system roles/bindings.")
 
+    // List user permissions section
+    fmt.Println("\n[List User Permissions]")
+    fmt.Println("  go run rbac-tool.go --list user [--nosys] [--overpowered | -op]")
+    fmt.Println("    --nosys: Exclude system roles/bindings.")
+    fmt.Println("    --overpowered / -op: Highlight overpowered permissions.")
+
+    // Verbs from api-resources section
+    fmt.Println("\n[Available Verbs from API-Resources]")
+    fmt.Println("  go run rbac-tool.go --verbs")
+    
+    fmt.Println("===========================")
+}
 
 func parseInputFlags() (string, bool, bool) {
     var tableOption string
