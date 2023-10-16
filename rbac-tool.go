@@ -359,8 +359,8 @@ func dataStoreClusterBindings() ([]ClusterRoleBinding, error) {
 
 func displayClusterRoleBindings(bindings []ClusterRoleBinding, excludeSystem bool, systemPrefixes []string) {
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
-    fmt.Fprintln(w, "Kind\tBinding Name\tAPIGroup\tRole Kind\tRole Name\tSubject Kind\tSubject Name\tSubject Namespace")
-    fmt.Fprintln(w, "-----\t------------\t---------\t---------\t------------\t------------\t----------------")
+    fmt.Fprintln(w, "Binding Kind\tBinding Name\tRole Kind\tReference(Role Name)\tSubject Kind\tSubject Name\tSubject Namespace")
+    fmt.Fprintln(w, "------------------\t------------\t-----------\t---------\t------------\t------------\t-----------------")
 
     for _, binding := range bindings {
         if excludeSystem && isSystemPrefix(binding.Metadata.Name, systemPrefixes) {
@@ -383,7 +383,7 @@ func displayClusterRoleBindings(bindings []ClusterRoleBinding, excludeSystem boo
             }
         }
         if displayedHeader {
-            fmt.Fprintln(w, "-----\t------------\t---------\t---------\t------------\t------------\t----------------")
+            fmt.Fprintln(w, "------------------\t------------\t-----------\t---------\t------------\t------------\t-----------------")
         }
     }
     w.Flush()
