@@ -8,6 +8,8 @@ import (
     "text/tabwriter"
     "flag"
     "sort"
+    "bufio"
+    "bytes"
 )
 // structures for Roles (Typically, roles are associated with a NAMESPACE.)
 type Role struct {
@@ -227,19 +229,25 @@ func displayUsage() {
     fmt.Println("\n[Available Verbs from API-Resources]")
     fmt.Println("  go run rbac-tool.go --verbs")
     
+    // Display CORE API Resources section
+    fmt.Println("\n[Built-in CORE API Resources]")
+    fmt.Println("  go run rbac-tool.go --core")
+    
     fmt.Println("===========================")
 }
 
-func parseInputFlags() (string, bool, bool) {
+func parseInputFlags() (string, bool, bool, bool) {
     var tableOption string
     var excludeSystem bool
     var verbsOption bool
+    var coreOption bool
     flag.StringVar(&tableOption, "table", "", "Display roles in a table format (use 'clusterrole' or 'role')")
     flag.BoolVar(&excludeSystem, "nosys", false, "Exclude default built-in system Roles")
     flag.BoolVar(&verbsOption, "verbs", false, "Display all available built-in verbs from api-resources")
+    flag.BoolVar(&coreOption, "core", false, "Display built-in CORE API Resouces")
     flag.Parse()
 
-    return tableOption, excludeSystem, verbsOption
+    return tableOption, excludeSystem, verbsOption, coreOption
 }
 
 
@@ -254,6 +262,24 @@ func displayBuiltInVerbs() {
     fmt.Println(string(output))
 }
 
+func displayCoreResources() {
+    cmd := exec.Command("kubectl", "api-resources", "--api-group=", "--no-headers")
+    output, err := cmd.Output()
+    if err != nil {
+        fmt.Println("Error executing kubectl api-resources command:", err)
+        return
+    }
+
+    scanner := bufio.NewScanner(bytes.NewReader(output))
+    fmt.Println("# Built-in CORE API Resources\n")
+    for scanner.Scan() {
+        line := scanner.Text()
+        fields := strings.Fields(line) // Split the line by whitespace
+        if len(fields) >= 5 {
+            fmt.Println(fields[4])
+        }
+    }
+}
 
 // The following 4 functions handle Kubernetes RBAC data and display for Roles & ClusterRoles:
 // dataStoreRoles, dataStoreClusterRoles, displayRoles, displayClusterRoles
@@ -500,12 +526,18 @@ func displayRoleBindings(bindings []RoleBinding, excludeSystem bool, systemPrefi
 func main() {
 //    systemPrefixes := []string{"system:", "kubeadm:", "calico","kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
     systemPrefixes := []string{"system:", "kubeadm:", "kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
-    tableOption, excludeSystem, verbsOption := parseInputFlags()
+    tableOption, excludeSystem, verbsOption, coreOption := parseInputFlags()
     
     if verbsOption {
         displayBuiltInVerbs()
         return
     }
+
+    if coreOption {
+	displayCoreResources()
+	return
+    }
+
 
     // You should call the functions and store their return values
     refinedClusterRoles, err := dataStoreClusterRoles()
