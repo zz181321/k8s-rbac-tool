@@ -442,57 +442,57 @@ func dataStoreClusterBindings() ([]ClusterRoleBinding, error) {
 func displayClusterRoleBindings(bindings []ClusterRoleBinding, excludeSystem bool, systemPrefixes []string, extended bool) {
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
     
+    header := "Binding Name\tRole Kind\tReference(Role Name)\tSubject Kind\tSubject Name\tAllows to (namespace)"
     if extended {
-        fmt.Fprintln(w, "Binding Name\tRole Kind\tReference(Role Name)\tSubject Kind\tSubject Name\tAllows to (namespace)\tOwnerReferences")
-        fmt.Fprintln(w, "------------\t---------\t---------\t------------\t------------\t---------\t---------------")
-    } else {
-        fmt.Fprintln(w, "Binding Name\tRole Kind\tReference(Role Name)\tSubject Kind\tSubject Name\tAllows to (namespace)")
-        fmt.Fprintln(w, "------------\t---------\t---------\t------------\t------------\t---------")
+        header += "\tOwnerReferences (apiVersion, kind, name)"
     }
-    
+    fmt.Fprintln(w, header)
+
+    separator := "------------\t---------\t---------\t------------\t------------\t---------"
+    if extended {
+        separator += "\t---------"
+    }
+    fmt.Fprintln(w, separator)
+
     for _, binding := range bindings {
         if excludeSystem && isSystemPrefix(binding.Metadata.Name, systemPrefixes) {
             continue
         }
-
         displayedHeader := false
         for index, subject := range binding.Subjects {
             namespace := subject.Namespace
             if namespace == "" {
                 namespace = "*"
             }
-            
-            ownerReferencesStr := ""
-            if extended && !displayedHeader {
+
+            orString := ""
+            if extended {
+                orString = "-"
                 for _, or := range binding.Metadata.OwnerReferences {
-                    ownerReferencesStr += fmt.Sprintf("apiVersion: %s\nkind: %s\nname: %s\n", or.APIVersion, or.Kind, or.Name)
+                    orString += fmt.Sprintf("(%s, %s, %s) ", or.APIVersion, or.Kind, or.Name)
+                }
+                if orString == "" {
+                    orString = "-"
                 }
             }
 
             if !displayedHeader {
+                fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s", binding.Metadata.Name, binding.RoleRef.Kind, binding.RoleRef.Name, subject.Kind, subject.Name, namespace)
                 if extended {
-                    fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-                        binding.Metadata.Name, binding.RoleRef.Kind, binding.RoleRef.Name, subject.Kind, subject.Name, namespace, ownerReferencesStr)
-                } else {
-                    fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
-                        binding.Metadata.Name, binding.RoleRef.Kind, binding.RoleRef.Name, subject.Kind, subject.Name, namespace)
+                    fmt.Fprintf(w, "\t%s", orString)
                 }
+                fmt.Fprintln(w)
                 displayedHeader = true
             } else {
+                fmt.Fprintf(w, "\t\t\t%s\t%s\t%s", subject.Kind, subject.Name, namespace)
                 if extended {
-                    fmt.Fprintf(w, "\t\t\t%s\t%s\t%s\t%s\n", subject.Kind, subject.Name, namespace, ownerReferencesStr)
-                } else {
-                    fmt.Fprintf(w, "\t\t\t%s\t%s\t%s\n", subject.Kind, subject.Name, namespace)
+                    fmt.Fprintf(w, "\t%s", orString)
                 }
+                fmt.Fprintln(w)
             }
 
-            // Only print the separator line after the last subject of a binding
             if index == len(binding.Subjects) - 1 {
-                if extended {
-                    fmt.Fprintln(w, "------------\t---------\t---------\t------------\t------------\t---------\t---------------")
-                } else {
-                    fmt.Fprintln(w, "------------\t---------\t---------\t------------\t------------\t---------")
-                }
+                fmt.Fprintln(w, separator)
             }
         }
     }
