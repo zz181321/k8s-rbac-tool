@@ -70,6 +70,7 @@ type ClusterRoleBindingMeta struct {
 	Name               string            `json:"name"`
 	ResourceVersion    string            `json:"resourceVersion"`
 	UID                string            `json:"uid"`
+	OwnerReferences    []OwnerReference  `json: "ownerReferences,omitempty"`
 }
 
 type ClusterRoleRef struct {
@@ -81,7 +82,16 @@ type ClusterRoleRef struct {
 type ClusterSubject struct {
 	Kind      string `json:"kind"`
 	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
+	Namespace string `json:"namespace,omitempty"`
+}
+// it's a custom field from KubeSphere
+type OwnerReference struct {
+	APIVersion string `json:"apiVersion"`
+	Kind       string `json:"kind"`
+	Name       string `json:"name"`
+	UID        string `json:"uid"`
+	Controller *bool  `json:"controller,omitempty"`
+	BlockOwnerDeletion *bool `json:"blockOwnerDeletion,omitempty"`
 }
 
 
@@ -236,20 +246,21 @@ func displayUsage() {
     fmt.Println("===========================")
 }
 
-func parseInputFlags() (string, bool, bool, bool) {
+func parseInputFlags() (string, bool, bool, bool, bool) {
     var tableOption string
     var excludeSystem bool
     var verbsOption bool
     var coreOption bool
-    flag.StringVar(&tableOption, "table", "", "Display roles in a table format (use 'clusterrole' or 'role')")
+    var extendedOption bool
+    flag.StringVar(&tableOption, "table", "", "Display roles in a table format (use 'clusterrole', 'role', etc.)")
     flag.BoolVar(&excludeSystem, "nosys", false, "Exclude default built-in system Roles")
     flag.BoolVar(&verbsOption, "verbs", false, "Display all available built-in verbs from api-resources")
     flag.BoolVar(&coreOption, "core", false, "Display built-in CORE API Resouces")
+    flag.BoolVar(&extendedOption, "extended", false, "Display extended attributes (e.g. owner references)")
+    flag.BoolVar(&extendedOption, "ext", false, "Display extended attributes (e.g. owner references) [short form]")
     flag.Parse()
-
-    return tableOption, excludeSystem, verbsOption, coreOption
+    return tableOption, excludeSystem, verbsOption, coreOption, extendedOption
 }
-
 
 func displayBuiltInVerbs() {
     cmd := exec.Command("sh", "-c", "kubectl api-resources --no-headers --sort-by name -o wide | sed 's/.*\\[//g' | tr -d \"]\" | tr \" \" \"\\n\" | sort | uniq")
@@ -342,8 +353,8 @@ func dataStoreClusterRoles() ([]Role, error) {
 func displayRoles(roles []Role, excludeSystem bool, systemPrefixes []string) {
 
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
-    fmt.Fprintln(w, "Namespace\tKind\tRole (Name)\tapiGroups\tResources\tVerbs")
-    fmt.Fprintln(w, "---------\t----\t---------\t---------\t---------\t----")
+    fmt.Fprintln(w, "Namespace\tKind\tRole Name\tapiGroups\tResources\tVerbs")
+    fmt.Fprintln(w, "---------\t----\t---------\t---------\t---------\t-----")
     for _, role := range roles {
         if excludeSystem && isSystemPrefix(role.Metadata.Name, systemPrefixes) {
             continue
@@ -365,7 +376,7 @@ func displayRoles(roles []Role, excludeSystem bool, systemPrefixes []string) {
         }
         
         if displayedHeader {
-            fmt.Fprintln(w, "---------\t----\t---------\t---------\t---------\t----")
+            fmt.Fprintln(w, "---------\t----\t---------\t---------\t---------\t-----")
         }
     }
     w.Flush()    
@@ -375,8 +386,8 @@ func displayRoles(roles []Role, excludeSystem bool, systemPrefixes []string) {
 func displayClusterRoles(roles []Role, excludeSystem bool, systemPrefixes []string) {
     
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
-	fmt.Fprintln(w, "Kind\tRole (Name)\tapiGroups\tResources\tVerbs")
-	fmt.Fprintln(w, "-----------\t---------\t----------\t---------\t------")
+	fmt.Fprintln(w, "Kind\tRole Name\tapiGroups\tResources\tVerbs")
+	fmt.Fprintln(w, "----\t---------\t---------\t---------\t-----")
 
 	for _, role := range roles {
 		if excludeSystem && isSystemPrefix(role.Metadata.Name, systemPrefixes) {
@@ -396,7 +407,7 @@ func displayClusterRoles(roles []Role, excludeSystem bool, systemPrefixes []stri
 			}
 		}
 		if displayedHeader {
-			fmt.Fprintln(w, "-----------\t---------\t----------\t---------\t------")
+			fmt.Fprintln(w, "----\t---------\t----------\t---------\t-----")
 		}
 	}
 	w.Flush()
@@ -428,40 +439,65 @@ func dataStoreClusterBindings() ([]ClusterRoleBinding, error) {
 }
 
 
-func displayClusterRoleBindings(bindings []ClusterRoleBinding, excludeSystem bool, systemPrefixes []string) {
+func displayClusterRoleBindings(bindings []ClusterRoleBinding, excludeSystem bool, systemPrefixes []string, extended bool) {
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
-    fmt.Fprintln(w, "Kind\tBinding Name\tRole Kind\tReference(Role Name)\tSubject Kind\tSubject Name\tAllows to (namespace)")
-    fmt.Fprintln(w, "----\t------------\t---------\t---------\t------------\t------------\t---------")
-
+    
+    if extended {
+        fmt.Fprintln(w, "Binding Name\tRole Kind\tReference(Role Name)\tSubject Kind\tSubject Name\tAllows to (namespace)\tOwnerReferences")
+        fmt.Fprintln(w, "------------\t---------\t---------\t------------\t------------\t---------\t---------------")
+    } else {
+        fmt.Fprintln(w, "Binding Name\tRole Kind\tReference(Role Name)\tSubject Kind\tSubject Name\tAllows to (namespace)")
+        fmt.Fprintln(w, "------------\t---------\t---------\t------------\t------------\t---------")
+    }
+    
     for _, binding := range bindings {
         if excludeSystem && isSystemPrefix(binding.Metadata.Name, systemPrefixes) {
             continue
         }
+
         displayedHeader := false
         for index, subject := range binding.Subjects {
             namespace := subject.Namespace
             if namespace == "" {
                 namespace = "*"
             }
+            
+            ownerReferencesStr := ""
+            if extended && !displayedHeader {
+                for _, or := range binding.Metadata.OwnerReferences {
+                    ownerReferencesStr += fmt.Sprintf("apiVersion: %s\nkind: %s\nname: %s\n", or.APIVersion, or.Kind, or.Name)
+                }
+            }
 
             if !displayedHeader {
-                fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", 
-                    binding.Kind, binding.Metadata.Name, binding.RoleRef.Kind, binding.RoleRef.Name, subject.Kind, subject.Name, namespace)
+                if extended {
+                    fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+                        binding.Metadata.Name, binding.RoleRef.Kind, binding.RoleRef.Name, subject.Kind, subject.Name, namespace, ownerReferencesStr)
+                } else {
+                    fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
+                        binding.Metadata.Name, binding.RoleRef.Kind, binding.RoleRef.Name, subject.Kind, subject.Name, namespace)
+                }
                 displayedHeader = true
             } else {
-                fmt.Fprintf(w, "\t\t\t\t%s\t%s\t%s\n", subject.Kind, subject.Name, namespace)  
+                if extended {
+                    fmt.Fprintf(w, "\t\t\t%s\t%s\t%s\t%s\n", subject.Kind, subject.Name, namespace, ownerReferencesStr)
+                } else {
+                    fmt.Fprintf(w, "\t\t\t%s\t%s\t%s\n", subject.Kind, subject.Name, namespace)
+                }
             }
 
             // Only print the separator line after the last subject of a binding
             if index == len(binding.Subjects) - 1 {
-                fmt.Fprintln(w, "----\t------------\t---------\t---------\t------------\t------------\t---------")
+                if extended {
+                    fmt.Fprintln(w, "------------\t---------\t---------\t------------\t------------\t---------\t---------------")
+                } else {
+                    fmt.Fprintln(w, "------------\t---------\t---------\t------------\t------------\t---------")
+                }
             }
         }
     }
     w.Flush()
 }
-
-
 
 
 // following functions handle Role Bindinds
@@ -527,7 +563,7 @@ func displayRoleBindings(bindings []RoleBinding, excludeSystem bool, systemPrefi
 func main() {
 //    systemPrefixes := []string{"system:", "kubeadm:", "calico","kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
     systemPrefixes := []string{"system:", "kubeadm:", "kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
-    tableOption, excludeSystem, verbsOption, coreOption := parseInputFlags()
+    tableOption, excludeSystem, verbsOption, coreOption, extended := parseInputFlags()
     
     if verbsOption {
         displayBuiltInVerbs()
@@ -570,7 +606,7 @@ func main() {
     case "clusterrole":
         displayClusterRoles(refinedClusterRoles, excludeSystem, systemPrefixes)
     case "clusterrolebinding":
-        displayClusterRoleBindings(refinedClusterBindings, excludeSystem, systemPrefixes)
+        displayClusterRoleBindings(refinedClusterBindings, excludeSystem, systemPrefixes, extended)
     case "role":
         displayRoles(refinedRoles, excludeSystem, systemPrefixes)
     case "rolebinding":
