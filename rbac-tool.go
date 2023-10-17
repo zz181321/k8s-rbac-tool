@@ -271,7 +271,7 @@ func displayCoreResources() {
     }
 
     scanner := bufio.NewScanner(bytes.NewReader(output))
-    fmt.Println("# Built-in CORE API Resources\n")
+    fmt.Println("# Built-in CORE API Resources")
     for scanner.Scan() {
         line := scanner.Text()
         fields := strings.Fields(line) // Split the line by whitespace
@@ -279,6 +279,7 @@ func displayCoreResources() {
             fmt.Println(fields[4])
         }
     }
+    fmt.Println()
 }
 
 // The following 4 functions handle Kubernetes RBAC data and display for Roles & ClusterRoles:
