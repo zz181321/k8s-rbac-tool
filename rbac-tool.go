@@ -443,13 +443,13 @@ func dataStoreClusterBindings() ([]ClusterRoleBinding, error) {
 func displayClusterRoleBindings(bindings []ClusterRoleBinding, excludeSystem bool, systemPrefixes []string, extended bool) {
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
 
-    header := "Binding Name\tRole Kind\tReference(Role Name)\tSubject Kind\tSubject Name\tAllows to (namespace)"
+    header := "Binding Name\tRole Kind\tLink to (Role Name)\tSubject Kind\tSubject Name\tAllows to (namespace)"
     if extended {
         header += "\tOwnerReferences (apiVersion, kind, name)"
     }
     fmt.Fprintln(w, header)
 
-    separator := "------------\t---------\t---------\t------------\t------------\t---------"
+    separator := "------------\t---------\t-------\t------------\t------------\t---------"
     if extended {
         separator += "\t---------"
     }
@@ -502,7 +502,6 @@ func displayClusterRoleBindings(bindings []ClusterRoleBinding, excludeSystem boo
 
 
 
-
 // following functions handle Role Bindinds
 
 func dataStoreRoleBindings() ([]RoleBinding, error) {
@@ -529,8 +528,8 @@ func dataStoreRoleBindings() ([]RoleBinding, error) {
 
 func displayRoleBindings(bindings []RoleBinding, excludeSystem bool, systemPrefixes []string) {
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
-    fmt.Fprintln(w, "Kind\tBinding Name\tAllows to (namespace)\tRole Kind\tReference(Role Name)\tSubject Kind\tSubject Name\tSubject Namespace")
-    fmt.Fprintln(w, "----\t------------\t---------\t---------\t---------\t------------\t------------\t-----------------")
+    fmt.Fprintln(w, "Kind\tBinding Name\tAllows to (namespace)\tRole Kind\tLink to (Role Name)\tSubject Kind\tSubject Name\tSubject Namespace")
+    fmt.Fprintln(w, "----\t------------\t---------\t---------\t-------\t------------\t------------\t-----------------")
 
     for _, binding := range bindings {
         if excludeSystem && isSystemPrefix(binding.Metadata.Name, systemPrefixes) {
@@ -554,7 +553,7 @@ func displayRoleBindings(bindings []RoleBinding, excludeSystem bool, systemPrefi
 
             // Only print the separator line after the last subject of a binding
             if index == len(binding.Subjects) - 1 {
-                fmt.Fprintln(w, "----\t------------\t---------\t---------\t---------\t------------\t------------\t-----------------")
+                fmt.Fprintln(w, "----\t------------\t---------\t---------\t-------\t------------\t------------\t-----------------")
             }
         }
     }
