@@ -464,7 +464,8 @@ func displayClusterRoleBindings(bindings []ClusterRoleBinding, excludeSystem boo
             if namespace == "" {
                 namespace = "*"
             }
-
+	    
+	    //for custom attributes
             orString := ""
             if extended {
                 orString = "-"
