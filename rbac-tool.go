@@ -440,10 +440,9 @@ func dataStoreClusterBindings() ([]ClusterRoleBinding, error) {
 
 
 
-
 func displayClusterRoleBindings(bindings []ClusterRoleBinding, excludeSystem bool, systemPrefixes []string, extended bool) {
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
-    
+
     header := "Binding Name\tRole Kind\tReference(Role Name)\tSubject Kind\tSubject Name\tAllows to (namespace)"
     if extended {
         header += "\tOwnerReferences (apiVersion, kind, name)"
@@ -457,47 +456,45 @@ func displayClusterRoleBindings(bindings []ClusterRoleBinding, excludeSystem boo
     fmt.Fprintln(w, separator)
 
     for _, binding := range bindings {
-        displayedHeader := false
+        if excludeSystem && isSystemPrefix(binding.Metadata.Name, systemPrefixes) {
+            continue
+        }
 
-        for index, subject := range binding.Subjects {
-            namespace := subject.Namespace
-            if namespace == "" {
-                namespace = "*"
+        if len(binding.Subjects) > 0 {
+            namespace := "*"
+            if binding.Subjects[0].Kind == "ServiceAccount" {
+                namespace = binding.Subjects[0].Namespace
             }
-            
-            if !displayedHeader {
-                fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s", binding.Metadata.Name, binding.RoleRef.Kind, binding.RoleRef.Name, subject.Kind, subject.Name, namespace)
-                displayedHeader = true
-            } else {
-                fmt.Fprintf(w, "\t\t\t\t\t")
+
+            orStrings := []string{}
+            for i, or := range binding.Metadata.OwnerReferences {
+                if i == 0 {
+                    orStrings = append(orStrings, fmt.Sprintf("%s,", or.APIVersion))
+                    orStrings = append(orStrings, fmt.Sprintf("\t\t\t\t\t\t%s,", or.Kind))
+                    orStrings = append(orStrings, fmt.Sprintf("\t\t\t\t\t\t%s", or.Name))
+                } else {
+                    orStrings = append(orStrings, fmt.Sprintf("%s,", or.APIVersion))
+                    orStrings = append(orStrings, fmt.Sprintf("%s,", or.Kind))
+                    orStrings = append(orStrings, fmt.Sprintf("%s", or.Name))
+                }
+            }
+
+            if len(orStrings) == 0 {
+                orStrings = append(orStrings, "-")
             }
 
             if extended {
-                var builder strings.Builder
-                if len(binding.Metadata.OwnerReferences) == 0 {
-                    builder.WriteString("-")
-                } else {
-                    for _, or := range binding.Metadata.OwnerReferences {
-                        builder.WriteString(fmt.Sprintf("%s, ", or.APIVersion))
-                    }
-                    str := builder.String()
-                    if strings.HasSuffix(str, ", ") {
-                        str = str[:len(str)-2]
-                    }
-                    builder.Reset()
-                    builder.WriteString(str)
+                // Print first OwnerReference with other details
+                fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", binding.Metadata.Name, binding.RoleRef.Kind, binding.RoleRef.Name, binding.Subjects[0].Kind, binding.Subjects[0].Name, namespace, orStrings[0])
+                // Print remaining OwnerReferences
+                for _, orString := range orStrings[1:] {
+                    fmt.Fprintf(w, "%s\n", orString)
                 }
-                fmt.Fprintf(w, "\t%s", builder.String())
-                fmt.Fprintln(w)
+            } else {
+                // Just print without OwnerReferences
+                fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", binding.Metadata.Name, binding.RoleRef.Kind, binding.RoleRef.Name, binding.Subjects[0].Kind, binding.Subjects[0].Name, namespace)
             }
-
-            for _, or := range binding.Metadata.OwnerReferences[1:] {
-                fmt.Fprintf(w, "\n\t\t\t\t\t\t%s, \n\t\t\t\t\t\t%s", or.Kind, or.Name)
-            }
-
-            if index == len(binding.Subjects) - 1 {
-                fmt.Fprintln(w, separator)
-            }
+            fmt.Fprintln(w, separator)
         }
     }
     w.Flush()
