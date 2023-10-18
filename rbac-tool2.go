@@ -70,7 +70,7 @@ type ClusterRoleBindingMeta struct {
 	Name               string            `json:"name"`
 	ResourceVersion    string            `json:"resourceVersion"`
 	UID                string            `json:"uid"`
-	OwnerReferences    []OwnerReference  `json: "ownerReferences,omitempty"`
+	OwnerReferences    []OwnerReference  `json:"ownerReferences,omitempty"`
 }
 
 type ClusterRoleRef struct {
@@ -465,30 +465,39 @@ func displayClusterRoleBindings(bindings []ClusterRoleBinding, excludeSystem boo
                 namespace = "*"
             }
 
-            orString := ""
+            // For custom attributes
+            orStrings := []string{}
             if extended {
-                orString = "-"
                 for _, or := range binding.Metadata.OwnerReferences {
-                    orString += fmt.Sprintf("(%s, %s, %s) ", or.APIVersion, or.Kind, or.Name)
+                    orString := fmt.Sprintf("(%s, %s, %s)", or.APIVersion, or.Kind, or.Name)
+                    orStrings = append(orStrings, orString)
                 }
-                if orString == "" {
-                    orString = "-"
+                if len(orStrings) == 0 {
+                    orStrings = append(orStrings, "-")
                 }
             }
 
             if !displayedHeader {
                 fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s", binding.Metadata.Name, binding.RoleRef.Kind, binding.RoleRef.Name, subject.Kind, subject.Name, namespace)
                 if extended {
-                    fmt.Fprintf(w, "\t%s", orString)
+                    fmt.Fprintf(w, "\t%s", orStrings[0])
                 }
                 fmt.Fprintln(w)
                 displayedHeader = true
             } else {
                 fmt.Fprintf(w, "\t\t\t%s\t%s\t%s", subject.Kind, subject.Name, namespace)
                 if extended {
-                    fmt.Fprintf(w, "\t%s", orString)
+                    fmt.Fprintf(w, "\t%s", orStrings[0])
                 }
                 fmt.Fprintln(w)
+            }
+
+            // Print the rest of the owner references in separate lines if extended is true
+	    if len(orStrings) > 1 {
+	    	for _, orString := range orStrings[1:] {
+                    fmt.Fprintf(w, "\t\t\t\t\t\t\t%s", orString)
+                    fmt.Fprintln(w)
+		}
             }
 
             if index == len(binding.Subjects) - 1 {
@@ -498,6 +507,7 @@ func displayClusterRoleBindings(bindings []ClusterRoleBinding, excludeSystem boo
     }
     w.Flush()
 }
+
 
 
 // following functions handle Role Bindinds
