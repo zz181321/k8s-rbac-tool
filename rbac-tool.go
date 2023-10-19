@@ -11,6 +11,21 @@ import (
     "bufio"
     "bytes"
 )
+
+type BindingInfo struct {
+    Kind        string `json:"kind"`
+    Namespace   string `json:"namespace"`
+    RoleRefName string `json:"roleRefName"`
+    RoleRefKind string `json:"roleRefKind"`
+}
+
+type AccountInfo struct {
+    Name     string       `json:"name"`
+    Bindings []BindingInfo `json:"bindings"`
+}
+
+var userListTable []AccountInfo
+
 // structures for Roles (Typically, roles are associated with a NAMESPACE.)
 type Role struct {
     APIVersion string       `json:"apiVersion"`
@@ -246,20 +261,22 @@ func displayUsage() {
     fmt.Println("===========================")
 }
 
-func parseInputFlags() (string, bool, bool, bool, bool) {
+func parseInputFlags() (string, bool, bool, bool, bool, bool) {
     var tableOption string
     var excludeSystem bool
     var verbsOption bool
     var coreOption bool
     var extendedOption bool
+    var listOption bool
     flag.StringVar(&tableOption, "table", "", "Display roles in a table format (use 'clusterrole', 'role', etc.)")
     flag.BoolVar(&excludeSystem, "nosys", false, "Exclude default built-in system Roles")
     flag.BoolVar(&verbsOption, "verbs", false, "Display all available built-in verbs from api-resources")
     flag.BoolVar(&coreOption, "core", false, "Display built-in CORE API Resouces")
     flag.BoolVar(&extendedOption, "extended", false, "Display extended attributes (e.g. owner references)")
     flag.BoolVar(&extendedOption, "ext", false, "Display extended attributes (e.g. owner references) [short form]")
+    flag.BoolVar(&listOption, "list", false, "Display User List")
     flag.Parse()
-    return tableOption, excludeSystem, verbsOption, coreOption, extendedOption
+    return tableOption, excludeSystem, verbsOption, coreOption, extendedOption, listOption
 }
 
 func displayBuiltInVerbs() {
@@ -282,7 +299,8 @@ func displayCoreResources() {
     }
 
     scanner := bufio.NewScanner(bytes.NewReader(output))
-    fmt.Println("# Built-in CORE API Resources")
+    fmt.Println("# In Kubernetes, when the \"apiGroups\" entry is empty, it specifically refers to the following resources")
+    fmt.Println("# (Built-in CORE API Resources)\n")
     for scanner.Scan() {
         line := scanner.Text()
         fields := strings.Fields(line) // Split the line by whitespace
@@ -562,10 +580,123 @@ func displayRoleBindings(bindings []RoleBinding, excludeSystem bool, systemPrefi
 
 
 
+func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []ClusterRoleBinding, roleBindings []RoleBinding) ([]AccountInfo, error) {
+    // 초기화: userListTable을 비워둡니다.
+    userListTable = []AccountInfo{}
+
+    // ClusterRoleBinding 데이터 처리
+    for _, clusterBinding := range clusterRoleBindings {
+        for _, subject := range clusterBinding.Subjects {
+            if subject.Kind == "User" {
+                info := BindingInfo{
+                    Kind:       clusterBinding.Kind,
+                    RoleRefName: clusterBinding.RoleRef.Name,
+                    RoleRefKind: clusterBinding.RoleRef.Kind,
+                }
+                addToTable(subject.Name, info)
+            }
+        }
+    }
+
+    // RoleBinding 데이터 처리
+    for _, roleBinding := range roleBindings {
+        for _, subject := range roleBinding.Subjects {
+            if subject.Kind == "User" {
+                info := BindingInfo{
+                    Kind:       roleBinding.Kind,
+                    Namespace:  roleBinding.Metadata.Namespace,
+                    RoleRefName: roleBinding.RoleRef.Name,
+                    RoleRefKind: roleBinding.RoleRef.Kind,
+                }
+                addToTable(subject.Name, info)
+            }
+        }
+    }
+
+    // 여기서는 정렬과 병합을 수행한다고 가정하겠습니다.
+    sortTable()
+    mergeAccounts()
+
+    // userListTable을 반환합니다.
+    return userListTable, nil
+}
+
+func addToTable(name string, info BindingInfo) {
+    for i, account := range userListTable {
+        if account.Name == name {
+            userListTable[i].Bindings = append(account.Bindings, info)
+            return
+        }
+    }
+    userListTable = append(userListTable, AccountInfo{Name: name, Bindings: []BindingInfo{info}})
+}
+
+func sortTable() {
+    sort.Slice(userListTable, func(i, j int) bool {
+        if userListTable[i].Name != userListTable[j].Name {
+            return userListTable[i].Name < userListTable[j].Name
+        }
+        for k := range userListTable[i].Bindings {
+            if userListTable[i].Bindings[k].Kind != userListTable[j].Bindings[k].Kind {
+                return userListTable[i].Bindings[k].Kind < userListTable[j].Bindings[k].Kind
+            }
+            if userListTable[i].Bindings[k].Namespace != userListTable[j].Bindings[k].Namespace {
+                return userListTable[i].Bindings[k].Namespace < userListTable[j].Bindings[k].Namespace
+            }
+            if userListTable[i].Bindings[k].RoleRefName != userListTable[j].Bindings[k].RoleRefName {
+                return userListTable[i].Bindings[k].RoleRefName < userListTable[j].Bindings[k].RoleRefName
+            }
+            if userListTable[i].Bindings[k].RoleRefKind != userListTable[j].Bindings[k].RoleRefKind {
+                return userListTable[i].Bindings[k].RoleRefKind < userListTable[j].Bindings[k].RoleRefKind
+            }
+        }
+        return false
+    })
+}
+
+func mergeAccounts() {
+    for i := 0; i < len(userListTable); i++ {
+        for j := i + 1; j < len(userListTable); j++ {
+            if userListTable[i].Name == userListTable[j].Name {
+                userListTable[i].Bindings = append(userListTable[i].Bindings, userListTable[j].Bindings...)
+                userListTable = append(userListTable[:j], userListTable[j+1:]...)
+                j--
+            }
+        }
+    }
+}
+
+
+func displayProcessedTable(userListTable []AccountInfo) {
+    w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
+    fmt.Fprintln(w, "Account Name\tKind\tNamespace\tRoleRefName\tRoleRefKind")
+    fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------")
+
+    for _, account := range userListTable {
+        displayedHeader := false
+        for _, binding := range account.Bindings {
+            if !displayedHeader {
+                fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", account.Name, binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
+                displayedHeader = true
+            } else {
+                fmt.Fprintf(w, "\t%s\t%s\t%s\t%s\n", binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
+            }
+        }
+        
+        if displayedHeader {
+            fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------")
+        }
+    }
+
+    w.Flush()
+}
+
+
+
 func main() {
 //    systemPrefixes := []string{"system:", "kubeadm:", "calico","kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
     systemPrefixes := []string{"system:", "kubeadm:", "kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
-    tableOption, excludeSystem, verbsOption, coreOption, extended := parseInputFlags()
+    tableOption, excludeSystem, verbsOption, coreOption, extended, listUser := parseInputFlags()
     
     if verbsOption {
         displayBuiltInVerbs()
@@ -603,6 +734,15 @@ func main() {
         return
     }
 
+    if listUser {
+	processdBindings, err := processBindings(refinedClusterRoles, refinedRoles, refinedClusterBindings, refinedRoleBindings)
+	if err != nil {
+		fmt.Println("Error processing bindings:", err)
+		return
+	}
+	displayProcessedTable(processdBindings)
+	return
+    }
 
     switch tableOption {
     case "clusterrole":
