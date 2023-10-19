@@ -298,11 +298,11 @@ func displayCoreResources() {
         return
     }
 
-    scanner := bufio.NewScanner(bytes.NewReader(output))
+    readLines := bufio.NewScanner(bytes.NewReader(output))
     fmt.Println("# In Kubernetes, when the \"apiGroups\" entry is empty, it specifically refers to the following resources")
     fmt.Println("# (Built-in CORE API Resources)\n")
-    for scanner.Scan() {
-        line := scanner.Text()
+    for readLines.Scan() {
+        line := readLines.Text()
         fields := strings.Fields(line) // Split the line by whitespace
         if len(fields) >= 5 {
             fmt.Println(fields[4])
@@ -310,6 +310,7 @@ func displayCoreResources() {
     }
     fmt.Println()
 }
+
 
 // The following 4 functions handle Kubernetes RBAC data and display for Roles & ClusterRoles:
 // dataStoreRoles, dataStoreClusterRoles, displayRoles, displayClusterRoles
