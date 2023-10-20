@@ -11,6 +11,16 @@ import (
     "bufio"
     "bytes"
 )
+// for input flags
+type InputFlags struct {
+    TableType       string
+    ListType        string
+    ExcludeSystem   bool
+    ExtendedOption  bool
+    MoreOption      bool
+    CoreOption      bool
+    VerbsOption     bool
+}
 
 // structures for Roles (Typically, roles are associated with a NAMESPACE.)
 type Role struct {
@@ -137,12 +147,33 @@ type BindingInfo struct {
 }
 
 type AccountInfo struct {
-    Name     string       `json:"name"`
-    Bindings []BindingInfo `json:"bindings"`
+    Name     	  string       `json:"name"`
+    Bindings	  []BindingInfo `json:"bindings"`
+    APIGroups     []string `json:"apiGroups"`
+    Resources     []string `json:"resources"`
+    Verbs         []string `json:"verbs"`
 }
 
 var USERLIST []AccountInfo
 
+
+// input options
+func parseInputFlags() InputFlags {
+    var flags InputFlags
+
+    flag.StringVar(&flags.TableType, "table", "", "Display table types: 'clusterrole', 'role', 'clusterrolebinding', 'rolebinding'")
+    flag.StringVar(&flags.ListType, "list", "", "Display list types: 'user'")
+    flag.BoolVar(&flags.ExcludeSystem, "nosys", false, "Exclude default built-in system Roles")
+    flag.BoolVar(&flags.ExtendedOption, "extended", false, "Display extended attributes (e.g. owner references)")
+    flag.BoolVar(&flags.ExtendedOption, "ext", false, "Display extended attributes (e.g. owner references) [short form]")
+    flag.BoolVar(&flags.MoreOption, "more", false, "Display User List with extended attributes")
+    flag.BoolVar(&flags.CoreOption, "core", false, "Display built-in CORE API Resouces") 
+    flag.BoolVar(&flags.VerbsOption, "verbs", false, "Display all available built-in verbs from api-resources") 
+
+    flag.Parse()
+
+    return flags
+}
 
 // initialize for sorting rules by APIGroup
 type SortByAPIGroup []RoleRule
@@ -263,24 +294,6 @@ func displayUsage() {
     fmt.Println("===========================")
 }
 
-func parseInputFlags() (string, bool, bool, bool, bool, bool) {
-    var tableOption string
-    var excludeSystem bool
-    var verbsOption bool
-    var coreOption bool
-    var extendedOption bool
-    var listOption bool
-    flag.StringVar(&tableOption, "table", "", "Display roles in a table format (use 'clusterrole', 'role', etc.)")
-    flag.BoolVar(&excludeSystem, "nosys", false, "Exclude default built-in system Roles")
-    flag.BoolVar(&verbsOption, "verbs", false, "Display all available built-in verbs from api-resources")
-    flag.BoolVar(&coreOption, "core", false, "Display built-in CORE API Resouces")
-    flag.BoolVar(&extendedOption, "extended", false, "Display extended attributes (e.g. owner references)")
-    flag.BoolVar(&extendedOption, "ext", false, "Display extended attributes (e.g. owner references) [short form]")
-    flag.BoolVar(&listOption, "list", false, "Display User List")
-    flag.Parse()
-    return tableOption, excludeSystem, verbsOption, coreOption, extendedOption, listOption
-}
-
 func displayBuiltInVerbs() {
     cmd := exec.Command("sh", "-c", "kubectl api-resources --no-headers --sort-by name -o wide | sed 's/.*\\[//g' | tr -d \"]\" | tr \" \" \"\\n\" | sort | uniq")
     output, err := cmd.Output()
@@ -371,13 +384,13 @@ func dataStoreClusterRoles() ([]Role, error) {
 
 
 // function for drawing a table and displaying typical Roles
-func displayRoles(roles []Role, excludeSystem bool, systemPrefixes []string) {
+func displayRoles(roles []Role, flags InputFlags, systemPrefixes []string) {
 
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
     fmt.Fprintln(w, "Namespace\tKind\tRole Name\tapiGroups\tResources\tVerbs")
     fmt.Fprintln(w, "---------\t----\t---------\t---------\t---------\t-----")
     for _, role := range roles {
-        if excludeSystem && isSystemPrefix(role.Metadata.Name, systemPrefixes) {
+        if flags.ExcludeSystem && isSystemPrefix(role.Metadata.Name, systemPrefixes) {
             continue
         }
         displayedHeader := false
@@ -404,14 +417,14 @@ func displayRoles(roles []Role, excludeSystem bool, systemPrefixes []string) {
 }
 
 // function for drawing a table and displaying Cluster Roles
-func displayClusterRoles(roles []Role, excludeSystem bool, systemPrefixes []string) {
+func displayClusterRoles(roles []Role, flags InputFlags, systemPrefixes []string) {
     
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
 	fmt.Fprintln(w, "Kind\tRole Name\tapiGroups\tResources\tVerbs")
 	fmt.Fprintln(w, "----\t---------\t---------\t---------\t-----")
 
 	for _, role := range roles {
-		if excludeSystem && isSystemPrefix(role.Metadata.Name, systemPrefixes) {
+		if flags.ExcludeSystem && isSystemPrefix(role.Metadata.Name, systemPrefixes) {
 			continue
 		}
 		displayedHeader := false
@@ -461,23 +474,23 @@ func dataStoreClusterBindings() ([]ClusterRoleBinding, error) {
 
 
 
-func displayClusterRoleBindings(bindings []ClusterRoleBinding, excludeSystem bool, systemPrefixes []string, extended bool) {
+func displayClusterRoleBindings(bindings []ClusterRoleBinding, flags InputFlags, systemPrefixes []string) {
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
 
     header := "Binding Name\tRole Kind\tLink to (Role Name)\tSubject Kind\tSubject Name\tAllows to (namespace)"
-    if extended {
+    if flags.ExtendedOption {
         header += "\tOwnerReferences (apiVersion, kind, name)"
     }
     fmt.Fprintln(w, header)
 
     separator := "------------\t---------\t-------\t------------\t------------\t---------"
-    if extended {
+    if flags.ExtendedOption {
         separator += "\t---------"
     }
     fmt.Fprintln(w, separator)
 
     for _, binding := range bindings {
-        if excludeSystem && isSystemPrefix(binding.Metadata.Name, systemPrefixes) {
+        if flags.ExcludeSystem && isSystemPrefix(binding.Metadata.Name, systemPrefixes) {
             continue
         }
 
@@ -504,7 +517,7 @@ func displayClusterRoleBindings(bindings []ClusterRoleBinding, excludeSystem boo
                 orStrings = append(orStrings, "-")
             }
 
-            if extended {
+            if flags.ExtendedOption {
                 // Print first OwnerReference with other details
                 fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", binding.Metadata.Name, binding.RoleRef.Kind, binding.RoleRef.Name, binding.Subjects[0].Kind, binding.Subjects[0].Name, namespace, orStrings[0])
                 // Print remaining OwnerReferences
@@ -547,13 +560,13 @@ func dataStoreRoleBindings() ([]RoleBinding, error) {
     return bindingsList.Items, nil
 }
 
-func displayRoleBindings(bindings []RoleBinding, excludeSystem bool, systemPrefixes []string) {
+func displayRoleBindings(bindings []RoleBinding, flags InputFlags, systemPrefixes []string) {
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
     fmt.Fprintln(w, "Kind\tBinding Name\tAllows to (namespace)\tRole Kind\tLink to (Role Name)\tSubject Kind\tSubject Name\tSubject Namespace")
     fmt.Fprintln(w, "----\t------------\t---------\t---------\t-------\t------------\t------------\t-----------------")
 
     for _, binding := range bindings {
-        if excludeSystem && isSystemPrefix(binding.Metadata.Name, systemPrefixes) {
+        if flags.ExcludeSystem && isSystemPrefix(binding.Metadata.Name, systemPrefixes) {
             continue
         }
         displayedHeader := false
@@ -673,93 +686,144 @@ func mergeAccounts() {
     }
 }
 
-func displayProcessedTable(USERLIST []AccountInfo) {
+
+func displayProcessedTable(USERLIST []AccountInfo, flags InputFlags) {
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
-    fmt.Fprintln(w, "Account Name\tKind\tNamespace\tRoleRefName\tRoleRefKind")
-    fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------")
+    if flags.MoreOption {
+        fmt.Fprintln(w, "Account Name\tKind\tNamespace\tRoleRefName\tRoleRefKind\tapiGroups\tResources\tVerbs")
+        fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
+    } else {
+        fmt.Fprintln(w, "Account Name\tKind\tNamespace\tRoleRefName\tRoleRefKind")
+        fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------")
+    }
 
     for _, account := range USERLIST {
         displayedHeader := false
         for _, binding := range account.Bindings {
             if !displayedHeader {
-                fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", account.Name, binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
+                if flags.MoreOption {
+                    fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t [%s]\n", 
+                        account.Name, binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind, 
+                        strings.Join(account.APIGroups, ", "), strings.Join(account.Resources, ", "), strings.Join(account.Verbs, ", "))
+                } else {
+                    fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", account.Name, binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
+                }
                 displayedHeader = true
             } else {
-                fmt.Fprintf(w, "\t%s\t%s\t%s\t%s\n", binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
+                if flags.MoreOption {
+                    fmt.Fprintf(w, "\t%s\t%s\t%s\t%s\t%s\t%s\t [%s]\n",
+                        binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind, 
+                        strings.Join(account.APIGroups, ", "), strings.Join(account.Resources, ", "), strings.Join(account.Verbs, ", "))
+                } else {
+                    fmt.Fprintf(w, "\t%s\t%s\t%s\t%s\n", binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
+                }
             }
         }
-        
         if displayedHeader {
-            fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------")
+            if flags.MoreOption {
+                fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
+            } else {
+                fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------")
+            }
         }
     }
-
     w.Flush()
 }
 
 
 
+func attachExtra(userList []AccountInfo, clusterRoles []Role, roles []Role) []AccountInfo {
+    userListExtras := make([]AccountInfo, len(userList))
+    copy(userListExtras, userList)
+    
+    for i, account := range userListExtras {
+        for _, binding := range account.Bindings {
+            if binding.RoleRefKind == "Role" {
+                for _, role := range roles {
+                    if role.Metadata.Name == binding.RoleRefName {
+                        userListExtras[i].APIGroups = append(userListExtras[i].APIGroups, role.Rules[0].APIGroups...)
+                        userListExtras[i].Resources = append(userListExtras[i].Resources, role.Rules[0].Resources...)
+                        userListExtras[i].Verbs = append(userListExtras[i].Verbs, role.Rules[0].Verbs...)
+                    }
+                }
+            } else if binding.RoleRefKind == "ClusterRole" {
+                for _, clusterRole := range clusterRoles {
+                    if clusterRole.Metadata.Name == binding.RoleRefName {
+                        userListExtras[i].APIGroups = append(userListExtras[i].APIGroups, clusterRole.Rules[0].APIGroups...)
+                        userListExtras[i].Resources = append(userListExtras[i].Resources, clusterRole.Rules[0].Resources...)
+                        userListExtras[i].Verbs = append(userListExtras[i].Verbs, clusterRole.Rules[0].Verbs...)
+                    }
+                }
+            }
+        }
+    }
+    return userListExtras
+}
+
+
 func main() {
 //    systemPrefixes := []string{"system:", "kubeadm:", "calico","kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
     systemPrefixes := []string{"system:", "kubeadm:", "kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
-    tableOption, excludeSystem, verbsOption, coreOption, extended, listUser := parseInputFlags()
     
-    if verbsOption {
+    flags := parseInputFlags()
+
+    if flags.VerbsOption {
         displayBuiltInVerbs()
         return
     }
 
-    if coreOption {
+    if flags.CoreOption {
 	displayCoreResources()
 	return
     }
-
 
     refinedClusterRoles, err := dataStoreClusterRoles()
     if err != nil {
         fmt.Println("Error getting Cluster Role data:", err)
         return
     }
-    
+
     refinedRoles, err := dataStoreRoles()
     if err != nil {
         fmt.Println("Error getting Role data:", err)
         return
     }
-    
+
     refinedClusterBindings, err := dataStoreClusterBindings()
     if err != nil {
         fmt.Println("Error getting Cluster Role Binding data:", err)
         return
     }
-    
+
     refinedRoleBindings, err := dataStoreRoleBindings()
     if err != nil {
         fmt.Println("Error getting Role Binding data:", err)
         return
     }
 
-    if listUser {
-	processdBindings, err := processBindings(refinedClusterRoles, refinedRoles, refinedClusterBindings, refinedRoleBindings)
-	if err != nil {
-		fmt.Println("Error processing bindings:", err)
-		return
-	}
-	displayProcessedTable(processdBindings)
-	return
+    if flags.ListType == "user" {
+        processedBindings, err := processBindings(refinedClusterRoles, refinedRoles, refinedClusterBindings, refinedRoleBindings)
+        if err != nil {
+            fmt.Println("Error processing bindings:", err)
+            return
+        }
+        if flags.MoreOption {
+            processedBindings = attachExtra(processedBindings, refinedClusterRoles, refinedRoles)
+        }
+        displayProcessedTable(processedBindings, flags)
+        return
     }
 
-    switch tableOption {
+    switch flags.TableType {
     case "clusterrole":
-        displayClusterRoles(refinedClusterRoles, excludeSystem, systemPrefixes)
+        displayClusterRoles(refinedClusterRoles, flags, systemPrefixes)
     case "clusterrolebinding":
-        displayClusterRoleBindings(refinedClusterBindings, excludeSystem, systemPrefixes, extended)
+        displayClusterRoleBindings(refinedClusterBindings, flags, systemPrefixes)
     case "role":
-        displayRoles(refinedRoles, excludeSystem, systemPrefixes)
+        displayRoles(refinedRoles, flags, systemPrefixes)
     case "rolebinding":
-        displayRoleBindings(refinedRoleBindings, excludeSystem, systemPrefixes)
+        displayRoleBindings(refinedRoleBindings, flags, systemPrefixes)
     default:
         displayUsage()
     }
 }
-
