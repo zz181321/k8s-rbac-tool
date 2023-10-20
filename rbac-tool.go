@@ -141,11 +141,12 @@ type AccountInfo struct {
     Bindings []BindingInfo `json:"bindings"`
 }
 
-var userListTable []AccountInfo
+var USERLIST []AccountInfo
 
 
-// Structure for sorting rules by APIGroup
+// initialize for sorting rules by APIGroup
 type SortByAPIGroup []RoleRule
+
 func (a SortByAPIGroup) Len() int           { return len(a) }
 func (a SortByAPIGroup) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a SortByAPIGroup) Less(i, j int) bool {
@@ -580,17 +581,20 @@ func displayRoleBindings(bindings []RoleBinding, excludeSystem bool, systemPrefi
 }
 
 
+// user list table create & sort, merge
 
 func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []ClusterRoleBinding, roleBindings []RoleBinding) ([]AccountInfo, error) {
-    // 초기화: userListTable
-    userListTable = []AccountInfo{}
+    // 초기화: USERLIST
+    USERLIST = []AccountInfo{}
 
     // ClusterRoleBinding 데이터 처리
     for _, clusterBinding := range clusterRoleBindings {
         for _, subject := range clusterBinding.Subjects {
-            if subject.Kind == "User" {
+//	    if subject.Kind == "User" && (!excludeSystem || !strings.HasPrefix(subject.Name, "system:")){
+//	    if subject.Kind == "User" && !strings.HasPrefix(subject.Name, "system:"){
+	    if subject.Kind == "User" {
                 info := BindingInfo{
-                    Kind:       clusterBinding.Kind,
+                    Kind:        clusterBinding.Kind,
                     RoleRefName: clusterBinding.RoleRef.Name,
                     RoleRefKind: clusterBinding.RoleRef.Kind,
                 }
@@ -602,10 +606,12 @@ func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []Cl
     // RoleBinding 데이터 처리
     for _, roleBinding := range roleBindings {
         for _, subject := range roleBinding.Subjects {
-            if subject.Kind == "User" {
+//	    if subject.Kind == "User" && (!excludeSystem || !strings.HasPrefix(subject.Name, "system:")){
+//	    if subject.Kind == "User" && !strings.HasPrefix(subject.Name, "system:"){
+	    if subject.Kind == "User" {
                 info := BindingInfo{
-                    Kind:       roleBinding.Kind,
-                    Namespace:  roleBinding.Metadata.Namespace,
+                    Kind:        roleBinding.Kind,
+                    Namespace:   roleBinding.Metadata.Namespace,
                     RoleRefName: roleBinding.RoleRef.Name,
                     RoleRefKind: roleBinding.RoleRef.Kind,
                 }
@@ -617,37 +623,37 @@ func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []Cl
     sortTable()
     mergeAccounts()
 
-    // return VALUES that processed userListTable
-    return userListTable, nil
+    // return VALUES that processed USERLIST
+    return USERLIST, nil
 }
 
 func addToTable(name string, info BindingInfo) {
-    for i, account := range userListTable {
+    for i, account := range USERLIST {
         if account.Name == name {
-            userListTable[i].Bindings = append(account.Bindings, info)
+            USERLIST[i].Bindings = append(account.Bindings, info)
             return
         }
     }
-    userListTable = append(userListTable, AccountInfo{Name: name, Bindings: []BindingInfo{info}})
+    USERLIST = append(USERLIST, AccountInfo{Name: name, Bindings: []BindingInfo{info}})
 }
 
 func sortTable() {
-    sort.Slice(userListTable, func(i, j int) bool {
-        if userListTable[i].Name != userListTable[j].Name {
-            return userListTable[i].Name < userListTable[j].Name
+    sort.Slice(USERLIST, func(i, j int) bool {
+        if USERLIST[i].Name != USERLIST[j].Name {
+            return USERLIST[i].Name < USERLIST[j].Name
         }
-        for k := range userListTable[i].Bindings {
-            if userListTable[i].Bindings[k].Kind != userListTable[j].Bindings[k].Kind {
-                return userListTable[i].Bindings[k].Kind < userListTable[j].Bindings[k].Kind
+        for k := range USERLIST[i].Bindings {
+            if USERLIST[i].Bindings[k].Kind != USERLIST[j].Bindings[k].Kind {
+                return USERLIST[i].Bindings[k].Kind < USERLIST[j].Bindings[k].Kind
             }
-            if userListTable[i].Bindings[k].Namespace != userListTable[j].Bindings[k].Namespace {
-                return userListTable[i].Bindings[k].Namespace < userListTable[j].Bindings[k].Namespace
+            if USERLIST[i].Bindings[k].Namespace != USERLIST[j].Bindings[k].Namespace {
+                return USERLIST[i].Bindings[k].Namespace < USERLIST[j].Bindings[k].Namespace
             }
-            if userListTable[i].Bindings[k].RoleRefName != userListTable[j].Bindings[k].RoleRefName {
-                return userListTable[i].Bindings[k].RoleRefName < userListTable[j].Bindings[k].RoleRefName
+            if USERLIST[i].Bindings[k].RoleRefName != USERLIST[j].Bindings[k].RoleRefName {
+                return USERLIST[i].Bindings[k].RoleRefName < USERLIST[j].Bindings[k].RoleRefName
             }
-            if userListTable[i].Bindings[k].RoleRefKind != userListTable[j].Bindings[k].RoleRefKind {
-                return userListTable[i].Bindings[k].RoleRefKind < userListTable[j].Bindings[k].RoleRefKind
+            if USERLIST[i].Bindings[k].RoleRefKind != USERLIST[j].Bindings[k].RoleRefKind {
+                return USERLIST[i].Bindings[k].RoleRefKind < USERLIST[j].Bindings[k].RoleRefKind
             }
         }
         return false
@@ -655,24 +661,23 @@ func sortTable() {
 }
 
 func mergeAccounts() {
-    for i := 0; i < len(userListTable); i++ {
-        for j := i + 1; j < len(userListTable); j++ {
-            if userListTable[i].Name == userListTable[j].Name {
-                userListTable[i].Bindings = append(userListTable[i].Bindings, userListTable[j].Bindings...)
-                userListTable = append(userListTable[:j], userListTable[j+1:]...)
+    for i := 0; i < len(USERLIST); i++ {
+        for j := i + 1; j < len(USERLIST); j++ {
+            if USERLIST[i].Name == USERLIST[j].Name {
+                USERLIST[i].Bindings = append(USERLIST[i].Bindings, USERLIST[j].Bindings...)
+                USERLIST = append(USERLIST[:j], USERLIST[j+1:]...)
                 j--
             }
         }
     }
 }
 
-
-func displayProcessedTable(userListTable []AccountInfo) {
+func displayProcessedTable(USERLIST []AccountInfo) {
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
     fmt.Fprintln(w, "Account Name\tKind\tNamespace\tRoleRefName\tRoleRefKind")
     fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------")
 
-    for _, account := range userListTable {
+    for _, account := range USERLIST {
         displayedHeader := false
         for _, binding := range account.Bindings {
             if !displayedHeader {
