@@ -242,13 +242,14 @@ func displayUsage() {
     // Display tables section
     fmt.Println("\n[Display Tables for Validating RBAC Data]")
     fmt.Println("  go run rbac-tool.go --table <type> [--nosys]")
-    fmt.Println("    <type>: role | rolebinding | clusterrole | clusterrolebinding [--extended | -ext]")
+    fmt.Println("    <type>: role | rolebinding | clusterrole | clusterrolebinding")
     fmt.Println("    --nosys: Exclude system roles/bindings.")
+    fmt.Println("    --extended / -ext : show extra attributes (only work with Cluster Role Bindings.")
 
     // List user permissions section
     fmt.Println("\n[List User Permissions]")
-    fmt.Println("  go run rbac-tool.go --list user [--extended | -ext] [--overpowered | -op]")
-    fmt.Println("    --extended / -ext : Show extended User list table.")
+    fmt.Println("  go run rbac-tool.go --list user --all [--overpowered | -op]")
+    fmt.Println("    --all : Show user list table with more attributes.")
     fmt.Println("    --overpowered / -op: Highlight overpowered permissions.")
 
     // Verbs from api-resources section
