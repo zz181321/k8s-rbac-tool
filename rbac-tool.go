@@ -12,20 +12,6 @@ import (
     "bytes"
 )
 
-type BindingInfo struct {
-    Kind        string `json:"kind"`
-    Namespace   string `json:"namespace"`
-    RoleRefName string `json:"roleRefName"`
-    RoleRefKind string `json:"roleRefKind"`
-}
-
-type AccountInfo struct {
-    Name     string       `json:"name"`
-    Bindings []BindingInfo `json:"bindings"`
-}
-
-var userListTable []AccountInfo
-
 // structures for Roles (Typically, roles are associated with a NAMESPACE.)
 type Role struct {
     APIVersion string       `json:"apiVersion"`
@@ -142,6 +128,20 @@ type BindingSubject struct {
     Namespace string `json:"namespace,omitempty"`
 }
 
+// Structures for User list
+type BindingInfo struct {
+    Kind        string `json:"kind"`
+    Namespace   string `json:"namespace"`
+    RoleRefName string `json:"roleRefName"`
+    RoleRefKind string `json:"roleRefKind"`
+}
+
+type AccountInfo struct {
+    Name     string       `json:"name"`
+    Bindings []BindingInfo `json:"bindings"`
+}
+
+var userListTable []AccountInfo
 
 
 // Structure for sorting rules by APIGroup
@@ -241,13 +241,13 @@ func displayUsage() {
     // Display tables section
     fmt.Println("\n[Display Tables for Validating RBAC Data]")
     fmt.Println("  go run rbac-tool.go --table <type> [--nosys]")
-    fmt.Println("    <type>: role | rolebinding | clusterrole | clusterrolebinding")
+    fmt.Println("    <type>: role | rolebinding | clusterrole | clusterrolebinding [--extended | -ext]")
     fmt.Println("    --nosys: Exclude system roles/bindings.")
 
     // List user permissions section
     fmt.Println("\n[List User Permissions]")
-    fmt.Println("  go run rbac-tool.go --list user [--nosys] [--overpowered | -op]")
-    fmt.Println("    --nosys: Exclude system roles/bindings.")
+    fmt.Println("  go run rbac-tool.go --list user [--extended | -ext] [--overpowered | -op]")
+    fmt.Println("    --extended / -ext : Show extended User list table.")
     fmt.Println("    --overpowered / -op: Highlight overpowered permissions.")
 
     // Verbs from api-resources section
@@ -582,7 +582,7 @@ func displayRoleBindings(bindings []RoleBinding, excludeSystem bool, systemPrefi
 
 
 func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []ClusterRoleBinding, roleBindings []RoleBinding) ([]AccountInfo, error) {
-    // 초기화: userListTable을 비워둡니다.
+    // 초기화: userListTable
     userListTable = []AccountInfo{}
 
     // ClusterRoleBinding 데이터 처리
@@ -614,11 +614,10 @@ func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []Cl
         }
     }
 
-    // 여기서는 정렬과 병합을 수행한다고 가정하겠습니다.
     sortTable()
     mergeAccounts()
 
-    // userListTable을 반환합니다.
+    // return VALUES that processed userListTable
     return userListTable, nil
 }
 
@@ -710,7 +709,6 @@ func main() {
     }
 
 
-    // You should call the functions and store their return values
     refinedClusterRoles, err := dataStoreClusterRoles()
     if err != nil {
         fmt.Println("Error getting Cluster Role data:", err)
