@@ -202,21 +202,29 @@ func mergeRules(rules []RoleRule) []RoleRule {
         "patch":            {},
         "update":           {},
     }
-    for _, rule := range rules {
-        for _, apiGroup := range rule.APIGroups {
-            for _, resource := range rule.Resources {
-                if _, ok := merged[apiGroup]; !ok {
-                    merged[apiGroup] = make(map[string]map[string]struct{})
-                }
-                if _, ok := merged[apiGroup][resource]; !ok {
-                    merged[apiGroup][resource] = make(map[string]struct{})
-                }
-                for _, verb := range rule.Verbs {
-                    merged[apiGroup][resource][verb] = struct{}{}
-                }
+
+
+for _, rule := range rules {
+    for _, apiGroup := range rule.APIGroups {
+        for _, resource := range rule.Resources {
+
+            // 만약 resourceNames이 존재한다면 resource를 변경합니다.
+            if len(rule.ResourceNames) > 0 {
+                resource = fmt.Sprintf("%s.%s", resource, rule.ResourceNames[0]) // 여기서는 ResourceNames 중 첫 번째 것만을 사용.
+            }
+
+            if _, ok := merged[apiGroup]; !ok {
+                merged[apiGroup] = make(map[string]map[string]struct{})
+            }
+            if _, ok := merged[apiGroup][resource]; !ok {
+                merged[apiGroup][resource] = make(map[string]struct{})
+            }
+            for _, verb := range rule.Verbs {
+                merged[apiGroup][resource][verb] = struct{}{}
             }
         }
     }
+}
     var mergedRules []RoleRule
     for apiGroup, resources := range merged {
         resourceVerbMap := make(map[string]map[string]struct{})
@@ -278,8 +286,8 @@ func displayUsage() {
 
     // List user permissions section
     fmt.Println("\n[List User Permissions]")
-    fmt.Println("  go run rbac-tool.go --list user --all [--overpowered | -op]")
-    fmt.Println("    --all : Show user list table with more attributes.")
+    fmt.Println("  go run rbac-tool.go --list user --more [--overpowered | -op]")
+    fmt.Println("    --more : Show user list table with more attributes.")
     fmt.Println("    --overpowered / -op: Highlight overpowered permissions.")
 
     // Verbs from api-resources section
