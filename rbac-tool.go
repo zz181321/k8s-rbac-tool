@@ -715,6 +715,7 @@ func displayProcessedTable(accounts []AccountInfo, flags InputFlags) {
 
     if flags.MoreOption {
         fmt.Fprintln(w, "Account Name\tKind\tNamespace\tRoleRefName\tRoleRefKind\tapiGroups\tResources\tVerbs")
+        fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
     } else {
         fmt.Fprintln(w, "Account Name\tKind\tNamespace\tRoleRefName\tRoleRefKind")
         fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------")
@@ -725,7 +726,7 @@ func displayProcessedTable(accounts []AccountInfo, flags InputFlags) {
         displayAccountName := true
 
         for _, binding := range account.Bindings {
-            if flags.MoreOption && binding.RoleRefName != prevRoleRefName {
+            if flags.MoreOption && binding.RoleRefName != prevRoleRefName && prevRoleRefName != "" {
                 fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
             }
 
