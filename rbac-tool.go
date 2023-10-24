@@ -711,57 +711,63 @@ func attachExtra(accounts []AccountInfo, refinedClusterRoles []Role, refinedRole
 
 
 func displayProcessedTable(accounts []AccountInfo, flags InputFlags) {
-    w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
 
-    if flags.MoreOption {
-        fmt.Fprintln(w, "Account Name\tKind\tNamespace\tRoleRefName\tRoleRefKind\tapiGroups\tResources\tVerbs")
-        fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
-    } else {
-        fmt.Fprintln(w, "Account Name\tKind\tNamespace\tRoleRefName\tRoleRefKind")
-        fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------")
-    }
+	if flags.MoreOption {
+		fmt.Fprintln(w, "Account Name\tKind\tNamespace\tRoleRefName\tRoleRefKind\tapiGroups\tResources\tVerbs")
+		fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
+	} else {
+		fmt.Fprintln(w, "Account Name\tKind\tNamespace\tRoleRefName\tRoleRefKind")
+		fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------")
+	}
 
-    prevRoleRefName := "" // 이전 RoleRefName을 저장할 변수
-    for _, account := range accounts {
-        displayAccountName := true
+	prevAccountName := ""
+	prevRoleRefName := ""
 
-        for _, binding := range account.Bindings {
-            if flags.MoreOption && binding.RoleRefName != prevRoleRefName && prevRoleRefName != "" {
-                fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
-            }
+	for _, account := range accounts {
+		displayAccountName := true
 
-            if displayAccountName {
-                fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s", account.Name, binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
-                displayAccountName = false
-            } else {
-                fmt.Fprintf(w, "\t%s\t%s\t%s\t%s", binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
-            }
+		for _, binding := range account.Bindings {
+			if flags.MoreOption && binding.RoleRefName != prevRoleRefName && prevRoleRefName != "" {
+				if account.Name == prevAccountName {
+					fmt.Fprintln(w, "\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
+				} else {
+					fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
+				}
+			}
 
-            if flags.MoreOption && len(account.ExtraRules) > 0 {
-                rule := account.ExtraRules[0]  // start with the first rule
-                fmt.Fprintf(w, "\t%s\t%s\t[%s]\n", rule.APIGroups[0], rule.Resources[0], strings.Join(rule.Verbs, ", "))
-                
-                for _, rule := range account.ExtraRules[1:] { // skip the first rule since we already displayed it
-                    for _, apiGroup := range rule.APIGroups {
-                        for _, resource := range rule.Resources {
-                            fmt.Fprintf(w, "\t\t\t\t\t%s\t%s\t[%s]\n", apiGroup, resource, strings.Join(rule.Verbs, ", "))
-                        }
-                    }
-                }
-            } else {
-                fmt.Fprintln(w)
-            }
+			if displayAccountName {
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s", account.Name, binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
+				displayAccountName = false
+			} else {
+				fmt.Fprintf(w, "\t%s\t%s\t%s\t%s", binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
+			}
 
-            prevRoleRefName = binding.RoleRefName // 현재 RoleRefName을 저장
-        }
+			if flags.MoreOption && len(account.ExtraRules) > 0 {
+				rule := account.ExtraRules[0] // start with the first rule
+				fmt.Fprintf(w, "\t%s\t%s\t[%s]\n", rule.APIGroups[0], rule.Resources[0], strings.Join(rule.Verbs, ", "))
 
-        if !flags.MoreOption {
-            fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------")
-        }
-    }
-    w.Flush()
+				for _, rule := range account.ExtraRules[1:] { // skip the first rule since we already displayed it
+					for _, apiGroup := range rule.APIGroups {
+						for _, resource := range rule.Resources {
+							fmt.Fprintf(w, "\t\t\t\t\t%s\t%s\t[%s]\n", apiGroup, resource, strings.Join(rule.Verbs, ", "))
+						}
+					}
+				}
+			} else {
+				fmt.Fprintln(w)
+			}
+
+			prevRoleRefName = binding.RoleRefName // 현재 RoleRefName을 저장
+			prevAccountName = account.Name        // 현재 Account Name을 저장
+		}
+
+		if !flags.MoreOption {
+			fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------")
+		}
+	}
+	w.Flush()
 }
-
 
 
 
