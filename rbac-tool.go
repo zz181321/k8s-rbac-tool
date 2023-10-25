@@ -731,7 +731,6 @@ func displayUserTable(accounts []*AccountInfo, flags InputFlags) {
             }
 
             if flags.MoreOption && len(binding.Rules) > 0 {
-                fmt.Println("ExtraRules:", binding.Rules)
                 rule := binding.Rules[0]
                 fmt.Fprintf(w, "\t%s\t%s\t[%s]\n", strings.Join(rule.APIGroups, ","), strings.Join(rule.Resources, ","), strings.Join(rule.Verbs, ", "))
 
