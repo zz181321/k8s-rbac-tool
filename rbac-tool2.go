@@ -605,6 +605,8 @@ func displayRoleBindings(bindings []RoleBinding, flags InputFlags, systemPrefixe
 }
 
 
+// processing user tables
+
 func refineAccounts(refinedClusterBindings []ClusterRoleBinding, refinedRoleBindings []RoleBinding) ([]*AccountInfo, error) {
     
     var accounts []*AccountInfo
@@ -613,7 +615,8 @@ func refineAccounts(refinedClusterBindings []ClusterRoleBinding, refinedRoleBind
     for _, clusterBinding := range refinedClusterBindings {
         for _, subject := range clusterBinding.Subjects {
             if subject.Kind == "User" {
-                account := findOrCreateAccount(accounts, subject.Kind, subject.Name)
+                var account *AccountInfo
+                accounts, account = findOrCreateAccount(accounts, subject.Kind, subject.Name)
                 detail := BindingDetail{
                     BindingKind: clusterBinding.Kind,
                     BindingName: clusterBinding.Metadata.Name,
@@ -629,7 +632,8 @@ func refineAccounts(refinedClusterBindings []ClusterRoleBinding, refinedRoleBind
     for _, roleBinding := range refinedRoleBindings {
         for _, subject := range roleBinding.Subjects {
             if subject.Kind == "User" {
-                account := findOrCreateAccount(accounts, subject.Kind, subject.Name)
+                var account *AccountInfo
+                accounts, account = findOrCreateAccount(accounts, subject.Kind, subject.Name)
                 detail := BindingDetail{
                     BindingKind: roleBinding.Kind,
                     BindingName: roleBinding.Metadata.Name,
@@ -650,10 +654,10 @@ func refineAccounts(refinedClusterBindings []ClusterRoleBinding, refinedRoleBind
 }
 
 // Helper function to find an existing account or create a new one
-func findOrCreateAccount(accounts []*AccountInfo, kind, name string) *AccountInfo {
+func findOrCreateAccount(accounts []*AccountInfo, kind, name string) ([]*AccountInfo, *AccountInfo) {
     for _, account := range accounts {
         if account.AccountName == name {
-            return account
+            return accounts, account
         }
     }
 
@@ -663,33 +667,39 @@ func findOrCreateAccount(accounts []*AccountInfo, kind, name string) *AccountInf
         AccountName: name,
     }
     accounts = append(accounts, newAccount)
-    return newAccount
+    return accounts, newAccount
 }
 
+
 func attachExtras(refinedAccounts []*AccountInfo, refinedRoles []Role, refinedClusterRoles []Role) []*AccountInfo {
-    for _, account := range refinedAccounts {
-        for _, bindingDetail := range account.UserBindings {
-            if bindingDetail.RoleRefKind == "ClusterRole" {
-                for _, clusterRole := range refinedClusterRoles {
-                    if clusterRole.Metadata.Name == bindingDetail.RoleRefName {
-                       bindingDetail.Rules = clusterRole.Rules
-                        bindingDetail.RoleKind = "ClusterRole"
-                        break
-                    }
+
+for _, account := range refinedAccounts {
+    for _, bindingDetail := range account.UserBindings {
+        fmt.Println("Checking for bindingDetail:", bindingDetail.RoleRefName, "of kind:", bindingDetail.RoleRefKind)
+        if bindingDetail.RoleRefKind == "ClusterRole" {
+            for _, clusterRole := range refinedClusterRoles {
+                fmt.Println("Matching with ClusterRole:", clusterRole.Metadata.Name)
+                if clusterRole.Metadata.Name == bindingDetail.RoleRefName {
+                    bindingDetail.Rules = clusterRole.Rules
+                    bindingDetail.RoleKind = "ClusterRole"
+                    fmt.Println("Assigned rules:", bindingDetail.Rules)
+                    break
                 }
-            } else if bindingDetail.RoleRefKind == "Role" {
-                for _, role := range refinedRoles {
-                    if role.Metadata.Name == bindingDetail.RoleRefName {
-                        bindingDetail.Rules = role.Rules
-                        bindingDetail.RoleKind = "Role"
-                        break
-                    }
+            }
+        } else if bindingDetail.RoleRefKind == "Role" {
+            for _, role := range refinedRoles {
+                fmt.Println("Matching with Role:", role.Metadata.Name)
+                if role.Metadata.Name == bindingDetail.RoleRefName {
+                    bindingDetail.Rules = role.Rules
+                    bindingDetail.RoleKind = "Role"
+                    fmt.Println("Assigned rules:", bindingDetail.Rules)
+                    break
                 }
             }
         }
     }
-
-    return refinedAccounts
+}
+	return refinedAccounts
 }
 
 
@@ -727,6 +737,7 @@ func displayUserTable(accounts []*AccountInfo, flags InputFlags) {
             }
 
             if flags.MoreOption && len(binding.Rules) > 0 {
+	    fmt.Println("ExtraRules:", binding.Rules)
                 rule := binding.Rules[0]
                 fmt.Fprintf(w, "\t%s\t%s\t[%s]\n", strings.Join(rule.APIGroups, ","), strings.Join(rule.Resources, ","), strings.Join(rule.Verbs, ", "))
 
