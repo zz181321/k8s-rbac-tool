@@ -139,21 +139,24 @@ type BindingSubject struct {
 }
 
 // Structures for User list
-type BindingInfo struct {
-    Kind        string `json:"kind"`
-    Namespace   string `json:"namespace"`
-    RoleRefName string `json:"roleRefName"`
-    RoleRefKind string `json:"roleRefKind"`
+type BindingDetail struct {
+    BindingKind   string
+    BindingName   string
+    RoleRefKind   string
+    RoleRefName   string
+    RoleKind	  string
+    Rules	  []RoleRule
 }
 
 type AccountInfo struct {
-    Name     	  string       `json:"name"`
-    Bindings	  []BindingInfo `json:"bindings"`
-    // 구조체의 재사용
-    ExtraRules []RoleRule `json:"rules"`
+    SubjectKind string
+    SubjectName string
+    Bindings    []BindingDetail
 }
 
-var USERLIST []AccountInfo
+
+
+//var USERLIST []AccountInfo
 
 
 // input options
@@ -603,98 +606,77 @@ func displayRoleBindings(bindings []RoleBinding, flags InputFlags, systemPrefixe
 
 
 // user list table create & sort, merge
+func processBindings(refinedClusterBindings []ClusterRoleBinding, refinedRoleBindings []RoleBinding) ([]AccountInfo, error) {
+    var accountInfos []AccountInfo
 
-func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []ClusterRoleBinding, roleBindings []RoleBinding) ([]AccountInfo, error) {
-    // 초기화: USERLIST
-    USERLIST = []AccountInfo{}
+    mergeOrAdd := func(detail BindingDetail) {
+        for i, account := range accountInfos {
+            if account.SubjectName == account.SubjectName {
+                accountInfos[i].Bindings = append(accountInfos[i].Bindings, detail)
+                return
+            }
+        }
+        accountInfos = append(accountInfos, AccountInfo{
+            SubjectName: account.SubjectName,
+            Bindings:    []BindingDetail{detail},
+        })
+    }
 
-    // ClusterRoleBinding 데이터 처리
-    for _, clusterBinding := range clusterRoleBindings {
-        for _, subject := range clusterBinding.Subjects {
-//	    if subject.Kind == "User" && (!excludeSystem || !strings.HasPrefix(subject.Name, "system:")){
-//	    if subject.Kind == "User" && !strings.HasPrefix(subject.Name, "system:"){
-	    if subject.Kind == "User" {
-                info := BindingInfo{
-                    Kind:        clusterBinding.Kind,
-                    RoleRefName: clusterBinding.RoleRef.Name,
-                    RoleRefKind: clusterBinding.RoleRef.Kind,
-                }
-                addToTable(subject.Name, info)
+    // Processing ClusterRoleBindings
+    for _, binding := range refinedClusterBindings {
+        for _, subject := range binding.Subjects {
+            if subject.Kind == "User" {
+                mergeOrAdd(BindingDetail{
+                    BindingKind:    binding.Kind,
+                    BindingName:    binding.Metadata.Name,
+                    RoleRefKind:    binding.RoleRef.Kind,
+                    RoleRefName:    binding.RoleRef.Name,
+                    SubjectName:    subject.Name,
+                })
             }
         }
     }
 
-    // RoleBinding 데이터 처리
-    for _, roleBinding := range roleBindings {
-        for _, subject := range roleBinding.Subjects {
-//	    if subject.Kind == "User" && (!excludeSystem || !strings.HasPrefix(subject.Name, "system:")){
-//	    if subject.Kind == "User" && !strings.HasPrefix(subject.Name, "system:"){
-	    if subject.Kind == "User" {
-                info := BindingInfo{
-                    Kind:        roleBinding.Kind,
-                    Namespace:   roleBinding.Metadata.Namespace,
-                    RoleRefName: roleBinding.RoleRef.Name,
-                    RoleRefKind: roleBinding.RoleRef.Kind,
-                }
-                addToTable(subject.Name, info)
+    // Processing RoleBindings
+    for _, binding := range refinedRoleBindings {
+        for _, subject := range binding.Subjects {
+            if subject.Kind == "User" {
+                mergeOrAdd(BindingDetail{
+                    BindingKind:    binding.Kind,
+                    BindingName:    binding.Metadata.Name,
+                    RoleRefKind:    binding.RoleRef.Kind,
+                    RoleRefName:    binding.RoleRef.Name,
+                    SubjectName:    subject.Name,
+                })
             }
         }
     }
 
-    sortTable()
-    mergeAccounts()
-
-    // return VALUES that processed USERLIST
-    return USERLIST, nil
-}
-
-func addToTable(name string, info BindingInfo) {
-    for i, account := range USERLIST {
-        if account.Name == name {
-            USERLIST[i].Bindings = append(account.Bindings, info)
-            return
-        }
-    }
-    USERLIST = append(USERLIST, AccountInfo{Name: name, Bindings: []BindingInfo{info}})
-}
-
-func sortTable() {
-    sort.Slice(USERLIST, func(i, j int) bool {
-        if USERLIST[i].Name != USERLIST[j].Name {
-            return USERLIST[i].Name < USERLIST[j].Name
-        }
-        for k := range USERLIST[i].Bindings {
-            if USERLIST[i].Bindings[k].Kind != USERLIST[j].Bindings[k].Kind {
-                return USERLIST[i].Bindings[k].Kind < USERLIST[j].Bindings[k].Kind
-            }
-            if USERLIST[i].Bindings[k].Namespace != USERLIST[j].Bindings[k].Namespace {
-                return USERLIST[i].Bindings[k].Namespace < USERLIST[j].Bindings[k].Namespace
-            }
-            if USERLIST[i].Bindings[k].RoleRefName != USERLIST[j].Bindings[k].RoleRefName {
-                return USERLIST[i].Bindings[k].RoleRefName < USERLIST[j].Bindings[k].RoleRefName
-            }
-            if USERLIST[i].Bindings[k].RoleRefKind != USERLIST[j].Bindings[k].RoleRefKind {
-                return USERLIST[i].Bindings[k].RoleRefKind < USERLIST[j].Bindings[k].RoleRefKind
-            }
-        }
-        return false
+    sort.Slice(accountInfos, func(i, j int) bool {
+        return accountInfos[i].SubjectName < accountInfos[j].SubjectName
     })
+
+    return accountInfos, nil
 }
 
-func mergeAccounts() {
-    for i := 0; i < len(USERLIST); i++ {
-        for j := i + 1; j < len(USERLIST); j++ {
-            if USERLIST[i].Name == USERLIST[j].Name {
-                USERLIST[i].Bindings = append(USERLIST[i].Bindings, USERLIST[j].Bindings...)
-                USERLIST = append(USERLIST[:j], USERLIST[j+1:]...)
-                j--
-            }
+func mergeOrAdd(accountInfos []AccountInfo, detail BindingDetail, subjectName string) []AccountInfo {
+    for i, account := range accountInfos {
+        if account.SubjectName == subjectName {
+            accountInfos[i].Bindings = append(accountInfos[i].Bindings, detail)
+            return accountInfos
         }
     }
+    
+    newAccount := AccountInfo{
+        SubjectName: subjectName,
+        Bindings:    []BindingDetail{detail},
+    }
+    accountInfos = append(accountInfos, newAccount)
+    return accountInfos
 }
 
 
-func attachExtra(accounts []AccountInfo, refinedClusterRoles []Role, refinedRoles []Role) []AccountInfo {
+func attachExtra(accounts []AccountInfo, refinedClusterRoles []ClusterRole, refinedRoles []Role) ([]AccountInfo, error) {
     for i, account := range accounts {
         for _, binding := range account.Bindings {
             switch binding.RoleRefKind {
@@ -715,68 +697,55 @@ func attachExtra(accounts []AccountInfo, refinedClusterRoles []Role, refinedRole
             }
         }
     }
-    return accounts
+
+    return accounts, nil
 }
 
 
 
 func displayProcessedTable(accounts []AccountInfo, flags InputFlags) {
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
+    w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
 
-	if flags.MoreOption {
-		fmt.Fprintln(w, "Account Name\tKind\tNamespace\tRoleRefName\tRoleRefKind\tapiGroups\tResources\tVerbs")
-		fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
-	} else {
-		fmt.Fprintln(w, "Account Name\tKind\tNamespace\tRoleRefName\tRoleRefKind")
-		fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------")
-	}
+    if flags.MoreOption {
+        fmt.Fprintln(w, "Subject Name\tSubject Kind\tBinding Name\tBinding Kind\tRoleRef Name\tRoleRef Kind\tRole Kind\tapiGroups\tResources\tVerbs")
+        fmt.Fprintln(w, "------------\t------------\t-----------\t------------\t-----------\t-----------\t---------\t---------\t---------\t-----")
+    } else {
+        fmt.Fprintln(w, "Subject Name\tSubject Kind\tBinding Name\tBinding Kind\tRoleRef Name\tRoleRef Kind\tRole Kind")
+        fmt.Fprintln(w, "------------\t------------\t-----------\t------------\t-----------\t-----------\t---------")
+    }
 
-	prevAccountName := ""
-	prevRoleRefName := ""
+    for _, account := range accounts {
+        displaySubjectName := true
 
-	for _, account := range accounts {
-		displayAccountName := true
+        for _, binding := range account.Bindings {
+            if displaySubjectName {
+                fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s", account.SubjectName, account.SubjectKind, binding.BindingName, binding.BindingKind, binding.RoleRefName, binding.RoleRefKind, binding.RoleKind)
+                displaySubjectName = false
+            } else {
+                fmt.Fprintf(w, "\t\t%s\t%s\t%s\t%s\t%s", binding.BindingName, binding.BindingKind, binding.RoleRefName, binding.RoleRefKind, binding.RoleKind)
+            }
 
-		for _, binding := range account.Bindings {
-			if flags.MoreOption && binding.RoleRefName != prevRoleRefName && prevRoleRefName != "" {
-				if account.Name == prevAccountName {
-					fmt.Fprintln(w, "\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
-				} else {
-					fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
-				}
-			}
+            if flags.MoreOption && len(binding.ExtraRules) > 0 {
+                rule := binding.ExtraRules[0] // start with the first rule
+                fmt.Fprintf(w, "\t%s\t%s\t[%s]\n", rule.APIGroups[0], rule.Resources[0], strings.Join(rule.Verbs, ", "))
 
-			if displayAccountName {
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s", account.Name, binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
-				displayAccountName = false
-			} else {
-				fmt.Fprintf(w, "\t%s\t%s\t%s\t%s", binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
-			}
+                for _, rule := range binding.ExtraRules[1:] { // skip the first rule since we already displayed it
+                    for _, apiGroup := range rule.APIGroups {
+                        for _, resource := range rule.Resources {
+                            fmt.Fprintf(w, "\t\t\t\t\t\t\t\t%s\t%s\t[%s]\n", apiGroup, resource, strings.Join(rule.Verbs, ", "))
+                        }
+                    }
+                }
+            } else {
+                fmt.Fprintln(w)
+            }
+        }
 
-			if flags.MoreOption && len(account.ExtraRules) > 0 {
-				rule := account.ExtraRules[0] // start with the first rule
-				fmt.Fprintf(w, "\t%s\t%s\t[%s]\n", rule.APIGroups[0], rule.Resources[0], strings.Join(rule.Verbs, ", "))
-
-				for _, rule := range account.ExtraRules[1:] { // skip the first rule since we already displayed it
-					for _, apiGroup := range rule.APIGroups {
-						for _, resource := range rule.Resources {
-							fmt.Fprintf(w, "\t\t\t\t\t%s\t%s\t[%s]\n", apiGroup, resource, strings.Join(rule.Verbs, ", "))
-						}
-					}
-				}
-			} else {
-				fmt.Fprintln(w)
-			}
-
-			prevRoleRefName = binding.RoleRefName // 현재 RoleRefName을 저장
-			prevAccountName = account.Name        // 현재 Account Name을 저장
-		}
-
-		if !flags.MoreOption {
-			fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------")
-		}
-	}
-	w.Flush()
+        if !flags.MoreOption {
+            fmt.Fprintln(w, "------------\t------------\t-----------\t------------\t-----------\t-----------\t---------")
+        }
+    }
+    w.Flush()
 }
 
 
