@@ -5,13 +5,13 @@ import (
     "fmt"
     "os"
     "os/exec"
-    "log"
     "strings"
     "text/tabwriter"
     "flag"
     "sort"
     "bufio"
     "bytes"
+    "log"
 )
 // for input flags
 type InputFlags struct {
@@ -147,13 +147,13 @@ type BindingInfo struct {
     Namespace   string `json:"namespace"`
     RoleRefName string `json:"roleRefName"`
     RoleRefKind string `json:"roleRefKind"`
+    // 구조체의 재사용
+    ExtraRules []RoleRule `json:"rules"`
 }
 
 type AccountInfo struct {
     Name     	  string       `json:"name"`
     Bindings	  []BindingInfo `json:"bindings"`
-    // 구조체의 재사용
-    ExtraRules []RoleRule `json:"rules"`
 }
 
 var USERLIST []AccountInfo
@@ -709,20 +709,21 @@ func mergeAccounts() {
 }
 
 
+
 func attachExtra(accounts []AccountInfo, refinedClusterRoles []Role, refinedRoles []Role) []AccountInfo {
     for i, account := range accounts {
-        for _, binding := range account.Bindings {
+        for j, binding := range account.Bindings {
             if binding.RoleRefKind == "Role" {
                 for _, role := range refinedRoles {
                     if role.Metadata.Name == binding.RoleRefName {
-                        accounts[i].ExtraRules = append(accounts[i].ExtraRules, role.Rules...)
+                        accounts[i].Bindings[j].ExtraRules = append(binding.ExtraRules, role.Rules...)
                         break
                     }
                 }
             } else if binding.RoleRefKind == "ClusterRole" {
                 for _, clusterRole := range refinedClusterRoles {
                     if clusterRole.Metadata.Name == binding.RoleRefName {
-                        accounts[i].ExtraRules = append(accounts[i].ExtraRules, clusterRole.Rules...)
+                        accounts[i].Bindings[j].ExtraRules = append(binding.ExtraRules, clusterRole.Rules...)
                         break
                     }
                 }
@@ -732,66 +733,65 @@ func attachExtra(accounts []AccountInfo, refinedClusterRoles []Role, refinedRole
     return accounts
 }
 
-
 func displayProcessedTable(accounts []AccountInfo, flags InputFlags) {
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
+    w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
 
-	if flags.MoreOption {
-		fmt.Fprintln(w, "Account Name\tKind\tNamespace\tRoleRefName\tRoleRefKind\tapiGroups\tResources\tVerbs")
-		fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
-	} else {
-		fmt.Fprintln(w, "Account Name\tKind\tNamespace\tRoleRefName\tRoleRefKind")
-		fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------")
-	}
+    if flags.MoreOption {
+        fmt.Fprintln(w, "Account Name\tKind\tNamespace\tRoleRefName\tRoleRefKind\tapiGroups\tResources\tVerbs")
+        fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
+    } else {
+        fmt.Fprintln(w, "Account Name\tKind\tNamespace\tRoleRefName\tRoleRefKind")
+        fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------")
+    }
 
-	prevAccountName := ""
-	prevRoleRefName := ""
-	prevBindingNamespace := ""
+    prevAccountName := ""
+    prevRoleRefName := ""
+    prevBindingNamespace := ""
 
-	for _, account := range accounts {
-		displayAccountName := true
+    for _, account := range accounts {
+        displayAccountName := true
 
-		for _, binding := range account.Bindings {
-			if flags.MoreOption && (binding.RoleRefName != prevRoleRefName || binding.Namespace != prevBindingNamespace) && prevRoleRefName != "" {
-				if account.Name == prevAccountName {
-					fmt.Fprintln(w, "\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
-				} else {
-					fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
-				}
-			}
+        for _, binding := range account.Bindings {
+            if flags.MoreOption && (binding.RoleRefName != prevRoleRefName || binding.Namespace != prevBindingNamespace) && prevRoleRefName != "" {
+                if account.Name == prevAccountName {
+                    fmt.Fprintln(w, "\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
+                } else {
+                    fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
+                }
+            }
 
-			if displayAccountName {
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s", account.Name, binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
-				displayAccountName = false
-			} else {
-				fmt.Fprintf(w, "\t%s\t%s\t%s\t%s", binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
-			}
+            if displayAccountName {
+                fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s", account.Name, binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
+                displayAccountName = false
+            } else {
+                fmt.Fprintf(w, "\t%s\t%s\t%s\t%s", binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
+            }
 
-			if flags.MoreOption && len(account.ExtraRules) > 0 {
-				rule := account.ExtraRules[0] // start with the first rule
-				fmt.Fprintf(w, "\t%s\t%s\t[%s]\n", rule.APIGroups[0], rule.Resources[0], strings.Join(rule.Verbs, ", "))
+            if flags.MoreOption && len(binding.ExtraRules) > 0 {
+                rule := binding.ExtraRules[0] // start with the first rule
+                fmt.Fprintf(w, "\t%s\t%s\t[%s]\n", rule.APIGroups[0], rule.Resources[0], strings.Join(rule.Verbs, ", "))
 
-				for _, rule := range account.ExtraRules[1:] { // skip the first rule since we already displayed it
-					for _, apiGroup := range rule.APIGroups {
-						for _, resource := range rule.Resources {
-							fmt.Fprintf(w, "\t\t\t\t\t%s\t%s\t[%s]\n", apiGroup, resource, strings.Join(rule.Verbs, ", "))
-						}
-					}
-				}
-			} else {
-				fmt.Fprintln(w)
-			}
+                for _, rule := range binding.ExtraRules[1:] { // skip the first rule since we already displayed it
+                    for _, apiGroup := range rule.APIGroups {
+                        for _, resource := range rule.Resources {
+                            fmt.Fprintf(w, "\t\t\t\t\t%s\t%s\t[%s]\n", apiGroup, resource, strings.Join(rule.Verbs, ", "))
+                        }
+                    }
+                }
+            } else {
+                fmt.Fprintln(w)
+            }
 
-			prevRoleRefName = binding.RoleRefName // 현재 RoleRefName을 저장
-			prevAccountName = account.Name        // 현재 Account Name을 저장
-			prevBindingNamespace = binding.Namespace // 현재 Namespace를 저장
-		}
+            prevRoleRefName = binding.RoleRefName // 현재 RoleRefName을 저장
+            prevAccountName = account.Name        // 현재 Account Name을 저장
+            prevBindingNamespace = binding.Namespace // 현재 Namespace를 저장
+        }
 
-		if !flags.MoreOption {
-			fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------")
-		}
-	}
-	w.Flush()
+        if !flags.MoreOption {
+            fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------")
+        }
+    }
+    w.Flush()
 }
 
 
@@ -824,13 +824,13 @@ func saveAsCSV(accounts []AccountInfo, flags InputFlags) {
             var record []string
             record = append(record, account.Name, binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
 
-            if flags.MoreOption && len(account.ExtraRules) > 0 {
-                rule := account.ExtraRules[0]
+            if flags.MoreOption && len(binding.ExtraRules) > 0 {
+                rule := binding.ExtraRules[0]
                 record = append(record, rule.APIGroups[0], rule.Resources[0], strings.Join(rule.Verbs, ", "))
                 writer.Write(record) 
 
                 // Handling subsequent rules similar to displayProcessedTable
-                for _, rule := range account.ExtraRules[1:] {
+                for _, rule := range binding.ExtraRules[1:] {
                     for _, apiGroup := range rule.APIGroups {
                         for _, resource := range rule.Resources {
                             writer.Write([]string{"", "", "", "", "", apiGroup, resource, strings.Join(rule.Verbs, ", ")})
