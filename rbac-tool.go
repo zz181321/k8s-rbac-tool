@@ -1,9 +1,11 @@
 package main
 import (
     "encoding/json"
+    "encoding/csv"
     "fmt"
     "os"
     "os/exec"
+    "log"
     "strings"
     "text/tabwriter"
     "flag"
@@ -20,6 +22,7 @@ type InputFlags struct {
     MoreOption      bool
     CoreOption      bool
     VerbsOption     bool
+    CSVWrite	    bool
 }
 
 // structures for Roles (Typically, roles are associated with a NAMESPACE.)
@@ -156,7 +159,7 @@ type AccountInfo struct {
 var USERLIST []AccountInfo
 
 
-// input options
+
 func parseInputFlags() InputFlags {
     var flags InputFlags
 
@@ -171,8 +174,16 @@ func parseInputFlags() InputFlags {
 
     flag.Parse()
 
+    // "get csv" 파싱 로직 추가
+    for i, arg := range os.Args {
+        if arg == "get" && i+1 < len(os.Args) && os.Args[i+1] == "csv" {
+            flags.CSVWrite = true
+        }
+    }
+
     return flags
 }
+
 
 // initialize for sorting rules by APIGroup
 type SortByAPIGroup []RoleRule
@@ -781,6 +792,58 @@ func displayProcessedTable(accounts []AccountInfo, flags InputFlags) {
 
 
 
+func saveAsCSV(accounts []AccountInfo, flags InputFlags) {
+    var filename string
+
+    if flags.MoreOption {
+	filename = "userListExtended.csv"
+    } else {
+	filename = "userList.csv"
+    }
+
+
+    file, err := os.Create(filename)
+    if err != nil {
+        log.Fatal("Cannot create file", err)
+    }
+    defer file.Close()
+
+    writer := csv.NewWriter(file)
+    defer writer.Flush()
+
+    if flags.MoreOption {
+        writer.Write([]string{"Account Name", "Kind", "Namespace", "RoleRefName", "RoleRefKind", "apiGroups", "Resources", "Verbs"})
+    } else {
+        writer.Write([]string{"Account Name", "Kind", "Namespace", "RoleRefName", "RoleRefKind"})
+    }
+
+    for _, account := range accounts {
+        for _, binding := range account.Bindings {
+            var record []string
+            record = append(record, account.Name, binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
+
+            if flags.MoreOption && len(account.ExtraRules) > 0 {
+                rule := account.ExtraRules[0]
+                record = append(record, rule.APIGroups[0], rule.Resources[0], strings.Join(rule.Verbs, ", "))
+                writer.Write(record) 
+
+                // 첫 번째 rule 이후의 규칙들을 기록합니다.
+                for _, rule := range account.ExtraRules[1:] {
+                    for _, apiGroup := range rule.APIGroups {
+                        for _, resource := range rule.Resources {
+                            writer.Write([]string{"", "", "", "", "", apiGroup, resource, strings.Join(rule.Verbs, ", ")})
+                        }
+                    }
+                }
+            } else {
+                writer.Write(record)
+            }
+        }
+    }
+}
+
+
+
 func main() {
 //    systemPrefixes := []string{"system:", "kubeadm:", "calico","kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
     systemPrefixes := []string{"system:", "kubeadm:", "kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
@@ -830,7 +893,12 @@ func main() {
         if flags.MoreOption {
             processedBindings = attachExtra(processedBindings, refinedClusterRoles, refinedRoles)
         }
-        displayProcessedTable(processedBindings, flags)
+	
+	if flags.CSVWrite {
+		saveAsCSV(processedBindings, flags)
+	} else {
+	        displayProcessedTable(processedBindings, flags)
+	}
         return
     }
 
