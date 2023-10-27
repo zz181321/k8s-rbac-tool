@@ -184,6 +184,32 @@ func parseInputFlags() InputFlags {
     return flags
 }
 
+func displayUsage() {
+    fmt.Println("===== RBAC Tool Usage =====")
+    // Display tables section
+    fmt.Println("\n[Display Tables for Validating RBAC Data]")
+    fmt.Println("  go run rbac-tool.go --table <type> [--nosys]")
+    fmt.Println("    <type>: role | rolebinding | clusterrole | clusterrolebinding")
+    fmt.Println("    --nosys: Exclude system roles/bindings.")
+    fmt.Println("    --extended / -ext : show extra attributes (only work with Cluster Role Bindings.)")
+
+    // List user permissions section
+    fmt.Println("\n[List User Permissions]")
+    fmt.Println("  go run rbac-tool.go --list user --more [--overpowered | -op] [get csv]")
+    fmt.Println("    --more : Show user list table with more attributes.")
+    fmt.Println("    --overpowered / -op: Highlight overpowered permissions.")
+    fmt.Println("    using [get csv] : write the user list into a CSV format file.")
+
+    // Verbs from api-resources section
+    fmt.Println("\n[Available Verbs from API-Resources]")
+    fmt.Println("  go run rbac-tool.go --verbs")
+
+    // Display CORE API Resources section
+    fmt.Println("\n[Built-in CORE API Resources]")
+    fmt.Println("  go run rbac-tool.go --core")
+    fmt.Println("===========================")
+}
+
 
 // initialize for sorting rules by APIGroup
 type SortByAPIGroup []RoleRule
@@ -285,32 +311,10 @@ func isSystemPrefix(itemName string, prefixes []string) bool {
     return false
 }
 
-func displayUsage() {
-    fmt.Println("===== RBAC Tool Usage =====")
-    
-    // Display tables section
-    fmt.Println("\n[Display Tables for Validating RBAC Data]")
-    fmt.Println("  go run rbac-tool.go --table <type> [--nosys]")
-    fmt.Println("    <type>: role | rolebinding | clusterrole | clusterrolebinding")
-    fmt.Println("    --nosys: Exclude system roles/bindings.")
-    fmt.Println("    --extended / -ext : show extra attributes (only work with Cluster Role Bindings.")
 
-    // List user permissions section
-    fmt.Println("\n[List User Permissions]")
-    fmt.Println("  go run rbac-tool.go --list user --more [--overpowered | -op]")
-    fmt.Println("    --more : Show user list table with more attributes.")
-    fmt.Println("    --overpowered / -op: Highlight overpowered permissions.")
 
-    // Verbs from api-resources section
-    fmt.Println("\n[Available Verbs from API-Resources]")
-    fmt.Println("  go run rbac-tool.go --verbs")
-    
-    // Display CORE API Resources section
-    fmt.Println("\n[Built-in CORE API Resources]")
-    fmt.Println("  go run rbac-tool.go --core")
-    
-    fmt.Println("===========================")
-}
+
+
 
 func displayBuiltInVerbs() {
     cmd := exec.Command("sh", "-c", "kubectl api-resources --no-headers --sort-by name -o wide | sed 's/.*\\[//g' | tr -d \"]\" | tr \" \" \"\\n\" | sort | uniq")
