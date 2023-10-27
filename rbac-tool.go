@@ -795,16 +795,14 @@ func displayProcessedTable(accounts []AccountInfo, flags InputFlags) {
 }
 
 
-
 func saveAsCSV(accounts []AccountInfo, flags InputFlags) {
     var filename string
 
     if flags.MoreOption {
-	filename = "userListExtended.csv"
+        filename = "userListExtended.csv"
     } else {
-	filename = "userList.csv"
+        filename = "userList.csv"
     }
-
 
     file, err := os.Create(filename)
     if err != nil {
@@ -831,7 +829,7 @@ func saveAsCSV(accounts []AccountInfo, flags InputFlags) {
                 record = append(record, rule.APIGroups[0], rule.Resources[0], strings.Join(rule.Verbs, ", "))
                 writer.Write(record) 
 
-                // 첫 번째 rule 이후의 규칙들을 기록합니다.
+                // Handling subsequent rules similar to displayProcessedTable
                 for _, rule := range account.ExtraRules[1:] {
                     for _, apiGroup := range rule.APIGroups {
                         for _, resource := range rule.Resources {
@@ -845,7 +843,6 @@ func saveAsCSV(accounts []AccountInfo, flags InputFlags) {
         }
     }
 }
-
 
 
 func main() {

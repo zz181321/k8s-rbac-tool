@@ -1,0 +1,10 @@
+Account Name,Kind,Namespace,RoleRefName,RoleRefKind
+system:anonymous,RoleBinding,kube-public,kubeadm:bootstrap-signer-clusterinfo,Role
+system:kube-controller-manager,ClusterRoleBinding,,system:kube-controller-manager,ClusterRole
+system:kube-controller-manager,RoleBinding,kube-system,extension-apiserver-authentication-reader,Role
+system:kube-controller-manager,RoleBinding,kube-system,system::leader-locking-kube-controller-manager,Role
+system:kube-proxy,ClusterRoleBinding,,system:node-proxier,ClusterRole
+system:kube-scheduler,ClusterRoleBinding,,system:kube-scheduler,ClusterRole
+system:kube-scheduler,ClusterRoleBinding,,system:volume-scheduler,ClusterRole
+system:kube-scheduler,RoleBinding,kube-system,extension-apiserver-authentication-reader,Role
+system:kube-scheduler,RoleBinding,kube-system,system::leader-locking-kube-scheduler,Role
