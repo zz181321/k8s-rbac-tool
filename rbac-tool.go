@@ -13,16 +13,18 @@ import (
     "bytes"
     "log"
 )
-// for input flags
+
+const Version = "0.2.0"
+
 type InputFlags struct {
-    TableType       string
-    ListType        string
-    ExcludeSystem   bool
-    ExtendedOption  bool
-    MoreOption      bool
-    CoreOption      bool
-    VerbsOption     bool
-    CSVWrite	    bool
+    CommandType       string // "show" or "get"
+    ResourceType      string
+    TableType	      string
+    ExcludeSystem     bool
+    ExtendedOption    bool
+    MoreOption        bool
+    OverpoweredOption bool
+    CSVType           string
 }
 
 // structures for Roles (Typically, roles are associated with a NAMESPACE.)
@@ -163,53 +165,113 @@ var USERLIST []AccountInfo
 func parseInputFlags() InputFlags {
     var flags InputFlags
 
-    flag.StringVar(&flags.TableType, "table", "", "Display table types: 'clusterrole', 'role', 'clusterrolebinding', 'rolebinding'")
-    flag.StringVar(&flags.ListType, "list", "", "Display list types: 'user'")
-    flag.BoolVar(&flags.ExcludeSystem, "nosys", false, "Exclude default built-in system Roles")
-    flag.BoolVar(&flags.ExtendedOption, "extended", false, "Display extended attributes (e.g. owner references)")
-    flag.BoolVar(&flags.ExtendedOption, "ext", false, "Display extended attributes (e.g. owner references) [short form]")
-    flag.BoolVar(&flags.MoreOption, "more", false, "Display User List with extended attributes")
-    flag.BoolVar(&flags.CoreOption, "core", false, "Display built-in CORE API Resouces") 
-    flag.BoolVar(&flags.VerbsOption, "verbs", false, "Display all available built-in verbs from api-resources") 
-
     flag.Parse()
+    args := flag.Args()
 
-    // "get csv" 파싱 로직 추가
-    for i, arg := range os.Args {
-        if arg == "get" && i+1 < len(os.Args) && os.Args[i+1] == "csv" {
-            flags.CSVWrite = true
+    if len(args) == 0 {
+        fmt.Println("No arguments provided.")
+        displayUsage()
+        os.Exit(1)
+    } 
+    
+    if len(args) == 1 && args[0] == "version" {
+	fmt.Println("RBAC Tool Version:", Version)
+	os.Exit(0)
+    }
+
+    switch args[0] {
+    case "show":
+        flags.CommandType = "show"
+        if len(args) > 1 {
+            switch args[1] {
+            case "table":
+		flags.ResourceType = "table"
+                if len(args) > 2 {
+                    flags.TableType = args[2]
+                } else {
+                    fmt.Println("Expected a table type argument after 'show table'.")
+                    os.Exit(1)
+                }
+            case "core":
+                flags.ResourceType = "core"
+            case "verbs":
+                flags.ResourceType = "verbs"
+            default:
+                fmt.Println("Invalid resource type provided for 'show'.")
+                os.Exit(1)
+            }
+        } else {
+            fmt.Println("Expected a resource type argument after 'show'.")
+            os.Exit(1)
+        }
+    case "get":
+        flags.CommandType = "get"
+        if len(args) > 1 {
+            flags.ResourceType = args[1]
+        } else {
+            fmt.Println("Expected a resource type argument after 'get'.")
+            os.Exit(1)
+        }
+    default:
+        fmt.Println("Invalid command type provided.")
+        os.Exit(1)
+    }
+
+    for _, arg := range args {
+        switch arg {
+        case "--nosys":
+            flags.ExcludeSystem = true
+        case "--extended", "-ext":
+            flags.ExtendedOption = true
+        case "--more":
+            flags.MoreOption = true
+        case "--overpowered", "-op":
+            flags.OverpoweredOption = true
+        case "csv":
+            if len(args) > 2 {
+                flags.CSVType = args[2]
+            } else {
+                fmt.Println("Expected a resource type for 'csv'.")
+                os.Exit(1)
+            }
         }
     }
 
     return flags
 }
 
+
+
 func displayUsage() {
     fmt.Println("===== RBAC Tool Usage =====")
+
     // Display tables section
-    fmt.Println("\n[Display Tables for Validating RBAC Data]")
-    fmt.Println("  go run rbac-tool.go --table <type> [--nosys]")
+    fmt.Println("[Display Tables for Validating RBAC Data]")
+    fmt.Println("  go run rbac-tool.go show table <type> [--nosys]")
     fmt.Println("    <type>: role | rolebinding | clusterrole | clusterrolebinding")
     fmt.Println("    --nosys: Exclude system roles/bindings.")
     fmt.Println("    --extended / -ext : show extra attributes (only work with Cluster Role Bindings.)")
 
-    // List user permissions section
-    fmt.Println("\n[List User Permissions]")
-    fmt.Println("  go run rbac-tool.go --list user --more [--overpowered | -op] [get csv]")
-    fmt.Println("    --more : Show user list table with more attributes.")
-    fmt.Println("    --overpowered / -op: Highlight overpowered permissions.")
-    fmt.Println("    using [get csv] : write the user list into a CSV format file.")
+    // Display CORE API Resources section
+    fmt.Println("[Built-in CORE API Resources]")
+    fmt.Println("  go run rbac-tool.go show core")
 
     // Verbs from api-resources section
-    fmt.Println("\n[Available Verbs from API-Resources]")
-    fmt.Println("  go run rbac-tool.go --verbs")
+    fmt.Println("[Available Verbs from API-Resources]")
+    fmt.Println("  go run rbac-tool.go show verbs")
 
-    // Display CORE API Resources section
-    fmt.Println("\n[Built-in CORE API Resources]")
-    fmt.Println("  go run rbac-tool.go --core")
+    // List user permissions section
+    fmt.Println("[List User Permissions]")
+    fmt.Println("  go run rbac-tool.go get user [--more] [--overpowered | -op]")
+    fmt.Println("    --more : Show user list table with more attributes.")
+    fmt.Println("    --overpowered / -op: Highlight overpowered permissions.")
+
+    // CSV output section
+    fmt.Println("[Get CSV Output]")
+    fmt.Println("  go run rbac-tool.go get csv [user | role | rolebinding | clusterrole | clusterrolebinding]")
+
     fmt.Println("===========================")
 }
-
 
 // initialize for sorting rules by APIGroup
 type SortByAPIGroup []RoleRule
@@ -850,17 +912,9 @@ func main() {
     systemPrefixes := []string{"system:", "kubeadm:", "kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
     
     flags := parseInputFlags()
+    fmt.Println("%v", flags)
 
-    if flags.VerbsOption {
-        displayBuiltInVerbs()
-        return
-    }
-
-    if flags.CoreOption {
-	displayCoreResources()
-	return
-    }
-
+    
     refinedClusterRoles, err := dataStoreClusterRoles()
     if err != nil {
         fmt.Println("Error getting Cluster Role data:", err)
@@ -885,34 +939,71 @@ func main() {
         return
     }
 
-    if flags.ListType == "user" {
-        processedBindings, err := processBindings(refinedClusterRoles, refinedRoles, refinedClusterBindings, refinedRoleBindings)
-        if err != nil {
-            fmt.Println("Error processing bindings:", err)
-            return
-        }
-        if flags.MoreOption {
-            processedBindings = attachExtra(processedBindings, refinedClusterRoles, refinedRoles)
-        }
-	
-	if flags.CSVWrite {
-		saveAsCSV(processedBindings, flags)
-	} else {
-	        displayProcessedTable(processedBindings, flags)
-	}
-        return
-    }
 
-    switch flags.TableType {
-    case "clusterrole":
-        displayClusterRoles(refinedClusterRoles, flags, systemPrefixes)
-    case "clusterrolebinding":
-        displayClusterRoleBindings(refinedClusterBindings, flags, systemPrefixes)
-    case "role":
-        displayRoles(refinedRoles, flags, systemPrefixes)
-    case "rolebinding":
-        displayRoleBindings(refinedRoleBindings, flags, systemPrefixes)
-    default:
-        displayUsage()
-    }
+ switch flags.CommandType {
+	case "show":
+	    switch flags.ResourceType {
+	    case "table":
+	        switch flags.TableType {
+	        case "clusterrole":
+	            displayClusterRoles(refinedClusterRoles, flags, systemPrefixes)
+	        case "clusterrolebinding":
+	            displayClusterRoleBindings(refinedClusterBindings, flags, systemPrefixes)
+	        case "role":
+	            displayRoles(refinedRoles, flags, systemPrefixes)
+	        case "rolebinding":
+	            displayRoleBindings(refinedRoleBindings, flags, systemPrefixes)
+	        default:
+	            displayUsage()
+	        }
+	    case "core":
+	        displayCoreResources()
+	    case "verbs":
+	        displayBuiltInVerbs()
+	    default:
+	        displayUsage()
+	    }
+	case "get":
+	    switch flags.ResourceType {
+	    case "user":
+	        processedBindings, err := processBindings(refinedClusterRoles, refinedRoles, refinedClusterBindings, refinedRoleBindings)
+	        if err != nil {
+	            fmt.Println("Error processing bindings:", err)
+	            return
+	        }
+	        if flags.MoreOption {
+	            processedBindings = attachExtra(processedBindings, refinedClusterRoles, refinedRoles)
+	        }
+	        displayProcessedTable(processedBindings, flags)
+	    case "csv":
+	        switch flags.CSVType {
+	        case "user":
+	            processedBindings, err := processBindings(refinedClusterRoles, refinedRoles, refinedClusterBindings, refinedRoleBindings)
+	            if err != nil {
+	                fmt.Println("Error processing bindings:", err)
+	                return
+	            }
+	            if flags.MoreOption {
+	                processedBindings = attachExtra(processedBindings, refinedClusterRoles, refinedRoles)
+	            }
+	            saveAsCSV(processedBindings, flags)
+	        case "role":
+	            //saveAsCSV(refinedRoles, flags)
+	        case "rolebinding":
+	            //saveAsCSV(refinedRoleBindings, flags)
+	        case "clusterrole":
+	            //saveAsCSV(refinedClusterRoles, flags)
+	        case "clusterrolebinding":
+	            //saveAsCSV(refinedClusterBindings, flags)
+	        default:
+	            displayUsage()
+	        }
+	    default:
+	        displayUsage()
+	    }
+	default:
+	    displayUsage()
+	}
+
+//end of maian()
 }
