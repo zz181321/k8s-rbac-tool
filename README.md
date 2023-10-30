@@ -2,7 +2,8 @@
 
 Kubernetes relies on external systems for user management and authentication, making it challenging to view Kubernetes users and their permissions at a glance in a CLI environment. The purpose of this tool is to make it convenient to query and explore Kubernetes in a CLI environment.
 
-# Use of the GO Language
+
+# Why GO Language?
 
 The GO language was chosen for the following reasons:
 
@@ -10,11 +11,13 @@ The GO language was chosen for the following reasons:
 - Code readability.
 - Kubernetes is written in GO.
 - Compiles all libraries statically, creating a binary.
-- Executable without compilation.
+- Executable without compilation, like script languages.
+
 
 # Required Packages
 
 golang-bin
+
 
 # Execution
 
@@ -36,6 +39,7 @@ There are two main options: "show" and "get."
 
 - "get" processes data received from the Kubernetes API server, combines it into a new format, and outputs it in a tabular form. It includes user permission queries and the ability to save the data in CSV format.
 
+
 # Available Options
 
 - "show table role [--nosys]"
@@ -46,6 +50,7 @@ There are two main options: "show" and "get."
 - "show verbs"
 - "get user [--more] [--overpowered | -op]"
 - "get csv [user | role | rolebinding | clusterrole | clusterrolebinding]"
+
 
 # How to Use
 
