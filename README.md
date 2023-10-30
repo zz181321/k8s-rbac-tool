@@ -3,6 +3,8 @@
 Kubernetes relies on external systems for user management and authentication, making it challenging to view Kubernetes users and their permissions at a glance in a CLI environment. The purpose of this tool is to make it convenient to query and explore Kubernetes in a CLI environment.
 
 
+This code puts all the functions in one file so you can use it like a script.
+
 # Why GO Language?
 
 The GO language was chosen for the following reasons:
