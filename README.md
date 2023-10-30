@@ -1,40 +1,90 @@
-Required Packages:
+# Purpose of Creation
+
+Kubernetes relies on external systems for user management and authentication, making it challenging to view Kubernetes users and their permissions at a glance in a CLI environment. The purpose of this tool is to make it convenient to query and explore Kubernetes in a CLI environment.
+
+# Use of the GO Language
+
+The GO language was chosen for the following reasons:
+
+- Specialized for CLI environments, allowing implementation without external library dependencies.
+- Code readability.
+- Kubernetes is written in GO.
+- Compiles all libraries statically, creating a binary.
+- Executable without compilation.
+
+# Required Packages
 
 golang-bin
 
-Execution:
+# Execution
 
-go run rbac-tool.go <options>
+To run the tool, you can use the following commands:
 
-Options:
+sudo go run rbac-tool.go <options>
 
-There are currently two available functionalities:
+or
 
-[Validation Table]: This feature loads and outputs role, cluster role, role binding, and cluster role binding from the Kubernetes API server.
+sudo go build rbac-tool.go
+./rbac-tool <options>
 
-[User Lookup]: Based on role binding and cluster role binding information retrieved from the Kubernetes API server, this feature filters and displays subjects (accounts) in User format. It then sorts and displays the roles and cluster roles associated with these accounts.
 
-Validation Table:
+# Option Descriptions
 
---table role: Outputs all roles present in the cluster.
---table clusterrole: Outputs all cluster roles present in the cluster.
---table rolebinding: Outputs all role bindings present in the cluster.
---table clusterrolebinding: Outputs all cluster role bindings present in the cluster.
+There are two main options: "show" and "get."
 
-Additional options available with the above options:
---nosys: Excludes system-related roles from the output by default.
---extended or -ext: Can be used in conjunction with the clusterrolebinding option and displays additional attributes created in KubeSphere.
+- "show" directly outputs data received from the Kubernetes API server in tabular format, primarily for verification and debugging purposes. It retrieves and outputs role, cluster role, role binding, and cluster role binding from the Kubernetes API server.
 
-[Example]:
-sudo go run rbac-tool.go --table clusterrolebinding --nosys --extended
+- "get" processes data received from the Kubernetes API server, combines it into a new format, and outputs it in a tabular form. It includes user permission queries and the ability to save the data in CSV format.
 
-User Lookup:
+# Available Options
 
---list user: Outputs a list of all users in the cluster.
---list user --more: Outputs a list of all users in the cluster along with the apiGroups, Resources, and Verbs they have permissions for.
+- "show table role [--nosys]"
+- "show table rolebinding [--nosys]"
+- "show table clusterrole [--nosys]"
+- "show table clusterrolebinding [--nosys] [--extended | -ext]"
+- "show core"
+- "show verbs"
+- "get user [--more] [--overpowered | -op]"
+- "get csv [user | role | rolebinding | clusterrole | clusterrolebinding]"
 
-Additional options available with the above options:
---overpowered or -op: Filters and outputs a list of users suspected to have excessive permissions (currently in development).
+# How to Use
 
-[Example]:
-sudo go run rbac-tool.go --list user
+1.1 "show table <TYPE>":
+
+   - "table role": Outputs all roles in the cluster.
+   - "table clusterrole": Outputs all cluster roles in the cluster.
+   - "table rolebinding": Outputs all role bindings in the cluster.
+   - "table clusterrolebinding": Outputs all cluster role bindings in the cluster.
+
+1.2 Additional options that can be used with the above options:
+
+   - "--nosys": Excludes system-related roles from the output.
+   - "--extended" or "-ext": Can be used with the "clusterrolebinding" option to display additional attributes created by KubeSphere.
+
+1.3 Usage examples:
+
+sudo go run rbac-tool.go show table clusterrolebinding --nosys --extended
+
+
+2.1 "get user":
+
+   - "user": Outputs a list of all users in the cluster.
+
+2.2 Additional options that can be used with the "get user" option:
+
+   - "--more": Outputs a list of all users in the cluster along with their permissions, apiGroups, Resources, and Verbs.
+   - "--overpowered" or "-op": Lists users suspected of having excessive permissions (implementation pending).
+
+2.3 Usage example:
+
+sudo go run rbac-tool.go get user --more
+
+
+3.1 "get csv":
+
+   - Saves the output in CSV format instead of displaying it on the screen.
+
+
+3.2 Usage example:
+
+sudo go run rbac-tool.go get csv user --more
