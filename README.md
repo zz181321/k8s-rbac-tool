@@ -25,7 +25,9 @@ To run the tool, you can use the following commands:
 
 sudo go run rbac-tool.go <options>
 
+
 or
+
 
 sudo go build rbac-tool.go
 ./rbac-tool <options>
