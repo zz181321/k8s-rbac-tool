@@ -30,6 +30,7 @@ or
 
 
 sudo go build rbac-tool.go
+
 ./rbac-tool <options>
 
 
