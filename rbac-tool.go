@@ -307,9 +307,9 @@ for _, rule := range rules {
     for _, apiGroup := range rule.APIGroups {
         for _, resource := range rule.Resources {
 
-            // 만약 resourceNames이 존재한다면 resource를 변경합니다.
+            // 만약 resourceNames이 존재한다면 resource를 변경
             if len(rule.ResourceNames) > 0 {
-                resource = fmt.Sprintf("%s.%s", resource, rule.ResourceNames[0]) // 여기서는 ResourceNames 중 첫 번째 것만을 사용.
+                resource = fmt.Sprintf("%s.%s", resource, rule.ResourceNames[0]) // 여기서는 ResourceNames 중 첫 번째 것만을 사용
             }
 
             if _, ok := merged[apiGroup]; !ok {
@@ -912,7 +912,7 @@ func main() {
     systemPrefixes := []string{"system:", "kubeadm:", "kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
     
     flags := parseInputFlags()
-    fmt.Println("%v", flags)
+    //fmt.Println("%v", flags)
 
     
     refinedClusterRoles, err := dataStoreClusterRoles()
@@ -1005,5 +1005,5 @@ func main() {
 	    displayUsage()
 	}
 
-//end of maian()
+//end of main()
 }
