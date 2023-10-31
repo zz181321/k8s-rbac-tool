@@ -163,7 +163,6 @@ type AccountInfo struct {
 var USERLIST []AccountInfo
 
 
-
 func parseInputFlags() InputFlags {
     var flags InputFlags
 
@@ -171,14 +170,14 @@ func parseInputFlags() InputFlags {
     args := flag.Args()
 
     if len(args) == 0 {
-        fmt.Println("No arguments provided.")
+        fmt.Println("No arguments provided.\n")
         displayUsage()
         os.Exit(1)
-    } 
-    
+    }
+
     if len(args) == 1 && args[0] == "version" {
-	fmt.Println("RBAC Tool Version:", Version)
-	os.Exit(0)
+        fmt.Println("RBAC Tool Version:", Version)
+        os.Exit(0)
     }
 
     switch args[0] {
@@ -187,7 +186,7 @@ func parseInputFlags() InputFlags {
         if len(args) > 1 {
             switch args[1] {
             case "table":
-		flags.ResourceType = "table"
+                flags.ResourceType = "table"
                 if len(args) > 2 {
                     flags.TableType = args[2]
                 } else {
@@ -219,7 +218,8 @@ func parseInputFlags() InputFlags {
         os.Exit(1)
     }
 
-    for _, arg := range args {
+    for i := 2; i < len(args); i++ {
+        arg := args[i]
         switch arg {
         case "--nosys":
             flags.ExcludeSystem = true
@@ -229,19 +229,34 @@ func parseInputFlags() InputFlags {
             flags.MoreOption = true
         case "--overpowered", "-op":
             flags.OverpoweredOption = true
-        case "csv":
-            if len(args) > 2 {
-                flags.CSVType = args[2]
+        case "--service":
+            flags.Service = true
+       case "--only":
+        if i+1 < len(args) {
+            value := args[i+1]
+            if value == "clusterrolebinding" || value == "rolebinding" {
+                flags.OnlyOption = value
             } else {
-                fmt.Println("Expected a resource type for 'csv'.")
+                fmt.Println("Invalid value provided after '--only' option. Use 'clusterrolebinding' or 'rolebinding'.")
                 os.Exit(1)
             }
+            i++ // Skip the next argument
+        } else {
+            fmt.Println("Expected a value after '--only' option.")
+            os.Exit(1)
+        }
+    case "csv":
+        if len(args) > i+1 {
+            flags.CSVType = args[i+1]
+            i++ // Skip the next argument
+        } else {
+            fmt.Println("Expected a resource type for 'csv'.")
+            os.Exit(1)
         }
     }
-
+}
     return flags
 }
-
 
 
 func displayUsage() {
