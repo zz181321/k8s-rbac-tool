@@ -708,7 +708,7 @@ func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []Cl
         for _, subject := range clusterBinding.Subjects {
 //	    if subject.Kind == "User" && (!excludeSystem || !strings.HasPrefix(subject.Name, "system:")){
 //	    if subject.Kind == "User" && !strings.HasPrefix(subject.Name, "system:"){
-	    if subject.Kind == "User" {
+	    if subject.Kind == "User" || flags.Service && subject.Kind == "ServiceAccount" {
                 info := BindingInfo{
                     Kind:        clusterBinding.Kind,
                     RoleRefName: clusterBinding.RoleRef.Name,
@@ -724,7 +724,7 @@ func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []Cl
         for _, subject := range roleBinding.Subjects {
 //	    if subject.Kind == "User" && (!excludeSystem || !strings.HasPrefix(subject.Name, "system:")){
 //	    if subject.Kind == "User" && !strings.HasPrefix(subject.Name, "system:"){
-	    if subject.Kind == "User" {
+	    if subject.Kind == "User" || flags.Service && subject.Kind == "ServiceAccount" {
                 info := BindingInfo{
                     Kind:        roleBinding.Kind,
                     Namespace:   roleBinding.Metadata.Namespace,
