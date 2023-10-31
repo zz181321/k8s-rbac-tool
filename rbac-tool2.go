@@ -25,7 +25,7 @@ type InputFlags struct {
     ExtendedOption    bool // --extended or -ext
     MoreOption        bool // --more
     OverpoweredOption bool // --overpowered or -op
-    WithService       bool // --with service
+    Service           bool // --with service
     OnlyOption        string // --only clusterrolebinding or rolebinding
 }
 
@@ -156,7 +156,8 @@ type BindingInfo struct {
 }
 
 type AccountInfo struct {
-    Name     	  string       `json:"name"`
+    Name     	  string        `json:"name"`
+    Type          string        `json:"kind"`
     Bindings	  []BindingInfo `json:"bindings"`
 }
 
@@ -698,7 +699,7 @@ func displayRoleBindings(bindings []RoleBinding, flags InputFlags, systemPrefixe
 
 // user list table create & sort, merge
 
-func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []ClusterRoleBinding, roleBindings []RoleBinding) ([]AccountInfo, error) {
+func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []ClusterRoleBinding, roleBindings []RoleBinding, flags InputFlags) ([]AccountInfo, error) {
     // 초기화: USERLIST
     USERLIST = []AccountInfo{}
 
@@ -713,7 +714,7 @@ func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []Cl
                     RoleRefName: clusterBinding.RoleRef.Name,
                     RoleRefKind: clusterBinding.RoleRef.Kind,
                 }
-                addToTable(subject.Name, info)
+                addToTable(subject.Name, subject.Kind, info)
             }
         }
     }
@@ -730,7 +731,7 @@ func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []Cl
                     RoleRefName: roleBinding.RoleRef.Name,
                     RoleRefKind: roleBinding.RoleRef.Kind,
                 }
-                addToTable(subject.Name, info)
+                addToTable(subject.Name, subject.Kind, info)
             }
         }
     }
@@ -742,14 +743,14 @@ func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []Cl
     return USERLIST, nil
 }
 
-func addToTable(name string, info BindingInfo) {
+func addToTable(name string, kind string, info BindingInfo) {
     for i, account := range USERLIST {
         if account.Name == name {
             USERLIST[i].Bindings = append(account.Bindings, info)
             return
         }
     }
-    USERLIST = append(USERLIST, AccountInfo{Name: name, Bindings: []BindingInfo{info}})
+    USERLIST = append(USERLIST, AccountInfo{Name: name, Type: kind, Bindings: []BindingInfo{info}})
 }
 
 func sortTable() {
@@ -983,7 +984,7 @@ func main() {
 	case "get":
 	    switch flags.ResourceType {
 	    case "user":
-	        processedBindings, err := processBindings(refinedClusterRoles, refinedRoles, refinedClusterBindings, refinedRoleBindings)
+	        processedBindings, err := processBindings(refinedClusterRoles, refinedRoles, refinedClusterBindings, refinedRoleBindings, flags)            
 	        if err != nil {
 	            fmt.Println("Error processing bindings:", err)
 	            return
@@ -995,7 +996,7 @@ func main() {
 	    case "csv":
 	        switch flags.CSVType {
 	        case "user":
-	            processedBindings, err := processBindings(refinedClusterRoles, refinedRoles, refinedClusterBindings, refinedRoleBindings)
+	            processedBindings, err := processBindings(refinedClusterRoles, refinedRoles, refinedClusterBindings, refinedRoleBindings, flags)
 	            if err != nil {
 	                fmt.Println("Error processing bindings:", err)
 	                return
