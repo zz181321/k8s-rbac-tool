@@ -813,15 +813,16 @@ func attachExtra(accounts []AccountInfo, refinedClusterRoles []Role, refinedRole
     return accounts
 }
 
+
 func displayProcessedTable(accounts []AccountInfo, flags InputFlags) {
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
 
     if flags.MoreOption {
-        fmt.Fprintln(w, "Account Name\tKind\tNamespace\tRoleRefName\tRoleRefKind\tapiGroups\tResources\tVerbs")
-        fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
+        fmt.Fprintln(w, "Account Name\tID Type\tKind\tNamespace\tRoleRefName\tRoleRefKind\tapiGroups\tResources\tVerbs")
+        fmt.Fprintln(w, "------------\t-------\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
     } else {
-        fmt.Fprintln(w, "Account Name\tKind\tNamespace\tRoleRefName\tRoleRefKind")
-        fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------")
+        fmt.Fprintln(w, "Account Name\tID Type\tKind\tNamespace\tRoleRefName\tRoleRefKind")
+        fmt.Fprintln(w, "------------\t-------\t----\t---------\t-----------\t-----------")
     }
 
     prevAccountName := ""
@@ -834,17 +835,25 @@ func displayProcessedTable(accounts []AccountInfo, flags InputFlags) {
         for _, binding := range account.Bindings {
             if flags.MoreOption && (binding.RoleRefName != prevRoleRefName || binding.Namespace != prevBindingNamespace) && prevRoleRefName != "" {
                 if account.Name == prevAccountName {
-                    fmt.Fprintln(w, "\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
+                    fmt.Fprintln(w, "\t\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
                 } else {
-                    fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
+                    fmt.Fprintln(w, "------------\t-------\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
                 }
             }
 
+	    // "ServiceAccount" to "Service", for short name
+            var idType string
+            if account.Type == "ServiceAccount" {
+                idType = "Service"
+            } else {
+                idType = account.Type
+            }
+
             if displayAccountName {
-                fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s", account.Name, binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s", account.Name, idType, binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
                 displayAccountName = false
             } else {
-                fmt.Fprintf(w, "\t%s\t%s\t%s\t%s", binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
+                fmt.Fprintf(w, "\t\t%s\t%s\t%s\t%s", binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
             }
 
             if flags.MoreOption && len(binding.ExtraRules) > 0 {
@@ -854,7 +863,7 @@ func displayProcessedTable(accounts []AccountInfo, flags InputFlags) {
                 for _, rule := range binding.ExtraRules[1:] { // skip the first rule since we already displayed it
                     for _, apiGroup := range rule.APIGroups {
                         for _, resource := range rule.Resources {
-                            fmt.Fprintf(w, "\t\t\t\t\t%s\t%s\t[%s]\n", apiGroup, resource, strings.Join(rule.Verbs, ", "))
+                            fmt.Fprintf(w, "\t\t\t\t\t\t%s\t%s\t[%s]\n", apiGroup, resource, strings.Join(rule.Verbs, ", "))
                         }
                     }
                 }
@@ -868,11 +877,12 @@ func displayProcessedTable(accounts []AccountInfo, flags InputFlags) {
         }
 
         if !flags.MoreOption {
-            fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------")
+            fmt.Fprintln(w, "------------\t-------\t----\t---------\t-----------\t-----------")
         }
     }
     w.Flush()
 }
+
 
 
 func saveAsCSV(accounts []AccountInfo, flags InputFlags) {
