@@ -1,0 +1,352 @@
+Account Name,Account Type,Kind,Namespace,RoleRefName,RoleRefKind,apiGroups,Resources,Verbs
+attachdetach-controller,ServiceAccount,ClusterRoleBinding,,system:controller:attachdetach-controller,ClusterRole,,events,"create, patch, update"
+,,,,,,,nodes,"get, list, watch"
+,,,,,,,nodes/status,"patch, update"
+,,,,,,,persistentvolumeclaims,"list, watch"
+,,,,,,,persistentvolumes,"list, watch"
+,,,,,,,pods,"list, watch"
+,,,,,,events.k8s.io,events,"create, patch, update"
+,,,,,,storage.k8s.io,csidrivers,"get, list, watch"
+,,,,,,storage.k8s.io,csinodes,"get, list, watch"
+,,,,,,storage.k8s.io,volumeattachments,"create, delete, get, list, watch"
+bootstrap-signer,ServiceAccount,RoleBinding,kube-public,system:controller:bootstrap-signer,Role,,configmaps,"get, list, watch"
+,,,,,,,configmaps.cluster-info,update
+,,,,,,,events,"create, patch, update"
+,,,,,,events.k8s.io,events,"create, patch, update"
+bootstrap-signer,ServiceAccount,RoleBinding,kube-system,system:controller:bootstrap-signer,Role,,configmaps,"get, list, watch"
+,,,,,,,configmaps.cluster-info,update
+,,,,,,,events,"create, patch, update"
+,,,,,,events.k8s.io,events,"create, patch, update"
+calico-kube-controllers,ServiceAccount,ClusterRoleBinding,,calico-kube-controllers,ClusterRole,,nodes,"get, list, watch"
+,,,,,,,pods,"get, list, watch"
+,,,,,,crd.projectcalico.org,blockaffinities,"create, delete, get, list, update, watch"
+,,,,,,crd.projectcalico.org,clusterinformations,"create, get, list, update, watch"
+,,,,,,crd.projectcalico.org,hostendpoints,"create, delete, get, list, update"
+,,,,,,crd.projectcalico.org,ipamblocks,"create, delete, get, list, update, watch"
+,,,,,,crd.projectcalico.org,ipamhandles,"create, delete, get, list, update, watch"
+,,,,,,crd.projectcalico.org,ippools,"list, watch"
+,,,,,,crd.projectcalico.org,ipreservations,list
+,,,,,,crd.projectcalico.org,kubecontrollersconfigurations,"create, get, update, watch"
+calico-node,ServiceAccount,ClusterRoleBinding,,calico-node,ClusterRole,,configmaps,get
+,,,,,,,endpoints,"get, list, watch"
+,,,,,,,namespaces,"get, list, watch"
+,,,,,,,nodes,"get, list, watch"
+,,,,,,,nodes/status,"patch, update"
+,,,,,,,pods,"get, list, watch"
+,,,,,,,pods/status,patch
+,,,,,,,serviceaccounts,"list, watch"
+,,,,,,,serviceaccounts/token.calico-node,create
+,,,,,,,services,"get, list, watch"
+,,,,,,apps,daemonsets,get
+,,,,,,crd.projectcalico.org,blockaffinities,"create, delete, get, list, update, watch"
+,,,,,,crd.projectcalico.org,globalnetworkpolicies,"get, list, watch"
+,,,,,,crd.projectcalico.org,bgppeers,"create, get, list, update, watch"
+,,,,,,crd.projectcalico.org,networksets,"get, list, watch"
+,,,,,,crd.projectcalico.org,caliconodestatuses,"get, list, update, watch"
+,,,,,,crd.projectcalico.org,clusterinformations,"create, get, list, update, watch"
+,,,,,,crd.projectcalico.org,felixconfigurations,"create, get, list, update, watch"
+,,,,,,crd.projectcalico.org,globalbgpconfigs,"get, list, watch"
+,,,,,,crd.projectcalico.org,globalfelixconfigs,"get, list, watch"
+,,,,,,crd.projectcalico.org,bgpconfigurations,"create, get, list, update, watch"
+,,,,,,crd.projectcalico.org,globalnetworksets,"get, list, watch"
+,,,,,,crd.projectcalico.org,hostendpoints,"get, list, watch"
+,,,,,,crd.projectcalico.org,ipamblocks,"create, delete, get, list, update, watch"
+,,,,,,crd.projectcalico.org,ipamconfigs,"create, get"
+,,,,,,crd.projectcalico.org,ipamhandles,"create, delete, get, list, update"
+,,,,,,crd.projectcalico.org,ippools,"create, get, list, update, watch"
+,,,,,,crd.projectcalico.org,ipreservations,"get, list, watch"
+,,,,,,crd.projectcalico.org,networkpolicies,"get, list, watch"
+,,,,,,discovery.k8s.io,endpointslices,"list, watch"
+,,,,,,networking.k8s.io,networkpolicies,"list, watch"
+certificate-controller,ServiceAccount,ClusterRoleBinding,,system:controller:certificate-controller,ClusterRole,,events,"create, patch, update"
+,,,,,,authorization.k8s.io,subjectaccessreviews,create
+,,,,,,certificates.k8s.io,certificatesigningrequests,"delete, get, list, watch"
+,,,,,,certificates.k8s.io,certificatesigningrequests/approval,update
+,,,,,,certificates.k8s.io,certificatesigningrequests/status,update
+,,,,,,certificates.k8s.io,signers.kubernetes.io/kube-apiserver-client,sign
+,,,,,,certificates.k8s.io,signers.kubernetes.io/kube-apiserver-client-kubelet,approve
+,,,,,,events.k8s.io,events,"create, patch, update"
+cloud-provider,ServiceAccount,RoleBinding,kube-system,system:controller:cloud-provider,Role,,configmaps,"create, get, list, watch"
+clusterrole-aggregation-controller,ServiceAccount,ClusterRoleBinding,,system:controller:clusterrole-aggregation-controller,ClusterRole,rbac.authorization.k8s.io,clusterroles,"escalate, get, list, patch, update, watch"
+coredns,ServiceAccount,ClusterRoleBinding,,system:coredns,ClusterRole,,endpoints,"list, watch"
+,,,,,,,namespaces,"list, watch"
+,,,,,,,nodes,get
+,,,,,,,pods,"list, watch"
+,,,,,,,services,"list, watch"
+,,,,,,discovery.k8s.io,endpointslices,"list, watch"
+cronjob-controller,ServiceAccount,ClusterRoleBinding,,system:controller:cronjob-controller,ClusterRole,,events,"create, patch, update"
+,,,,,,,pods,"delete, list"
+,,,,,,batch,cronjobs,"get, list, update, watch"
+,,,,,,batch,cronjobs/finalizers,update
+,,,,,,batch,cronjobs/status,update
+,,,,,,batch,jobs,"create, delete, get, list, patch, update, watch"
+,,,,,,events.k8s.io,events,"create, patch, update"
+daemon-set-controller,ServiceAccount,ClusterRoleBinding,,system:controller:daemon-set-controller,ClusterRole,,events,"create, patch, update"
+,,,,,,,nodes,"list, watch"
+,,,,,,,pods,"create, delete, list, patch, watch"
+,,,,,,,pods/binding,create
+,,,,,,apps,controllerrevisions,"create, delete, get, list, patch, update, watch"
+,,,,,,apps,daemonsets,"get, list, watch"
+,,,,,,apps,daemonsets/finalizers,update
+,,,,,,apps,daemonsets/status,update
+,,,,,,events.k8s.io,events,"create, patch, update"
+,,,,,,extensions,daemonsets,"get, list, watch"
+,,,,,,extensions,daemonsets/finalizers,update
+,,,,,,extensions,daemonsets/status,update
+deployment-controller,ServiceAccount,ClusterRoleBinding,,system:controller:deployment-controller,ClusterRole,,events,"create, patch, update"
+,,,,,,,pods,"get, list, update, watch"
+,,,,,,apps,deployments,"get, list, update, watch"
+,,,,,,apps,deployments/finalizers,update
+,,,,,,apps,deployments/status,update
+,,,,,,apps,replicasets,"create, delete, get, list, patch, update, watch"
+,,,,,,events.k8s.io,events,"create, patch, update"
+,,,,,,extensions,deployments,"get, list, update, watch"
+,,,,,,extensions,deployments/finalizers,update
+,,,,,,extensions,deployments/status,update
+,,,,,,extensions,replicasets,"create, delete, get, list, patch, update, watch"
+disruption-controller,ServiceAccount,ClusterRoleBinding,,system:controller:disruption-controller,ClusterRole,,events,"create, patch, update"
+,,,,,,,replicationcontrollers,"get, list, watch"
+,,,,,,*,*/scale,get
+,,,,,,apps,deployments,"get, list, watch"
+,,,,,,apps,replicasets,"get, list, watch"
+,,,,,,apps,statefulsets,"get, list, watch"
+,,,,,,events.k8s.io,events,"create, patch, update"
+,,,,,,extensions,deployments,"get, list, watch"
+,,,,,,extensions,replicasets,"get, list, watch"
+,,,,,,policy,poddisruptionbudgets,"get, list, watch"
+,,,,,,policy,poddisruptionbudgets/status,update
+endpoint-controller,ServiceAccount,ClusterRoleBinding,,system:controller:endpoint-controller,ClusterRole,,endpoints,"create, delete, get, list, update"
+,,,,,,,endpoints/restricted,create
+,,,,,,,events,"create, patch, update"
+,,,,,,,pods,"get, list, watch"
+,,,,,,,services,"get, list, watch"
+,,,,,,events.k8s.io,events,"create, patch, update"
+endpointslice-controller,ServiceAccount,ClusterRoleBinding,,system:controller:endpointslice-controller,ClusterRole,,events,"create, patch, update"
+,,,,,,,nodes,"get, list, watch"
+,,,,,,,pods,"get, list, watch"
+,,,,,,,services,"get, list, watch"
+,,,,,,,services/finalizers,update
+,,,,,,discovery.k8s.io,endpointslices,"create, delete, get, list, update"
+,,,,,,events.k8s.io,events,"create, patch, update"
+endpointslicemirroring-controller,ServiceAccount,ClusterRoleBinding,,system:controller:endpointslicemirroring-controller,ClusterRole,,endpoints,"get, list, watch"
+,,,,,,,endpoints/finalizers,update
+,,,,,,,events,"create, patch, update"
+,,,,,,,services,"get, list, watch"
+,,,,,,,services/finalizers,update
+,,,,,,discovery.k8s.io,endpointslices,"create, delete, get, list, update"
+,,,,,,events.k8s.io,events,"create, patch, update"
+ephemeral-volume-controller,ServiceAccount,ClusterRoleBinding,,system:controller:ephemeral-volume-controller,ClusterRole,,events,"create, patch, update"
+,,,,,,,persistentvolumeclaims,"create, get, list, watch"
+,,,,,,,pods,"get, list, watch"
+,,,,,,,pods/finalizers,update
+,,,,,,events.k8s.io,events,"create, patch, update"
+expand-controller,ServiceAccount,ClusterRoleBinding,,system:controller:expand-controller,ClusterRole,,endpoints,get
+,,,,,,,events,"create, patch, update"
+,,,,,,,persistentvolumeclaims,"get, list, watch"
+,,,,,,,persistentvolumeclaims/status,"patch, update"
+,,,,,,,persistentvolumes,"get, list, patch, update, watch"
+,,,,,,,secrets,get
+,,,,,,,services,get
+,,,,,,events.k8s.io,events,"create, patch, update"
+,,,,,,storage.k8s.io,storageclasses,"get, list, watch"
+generic-garbage-collector,ServiceAccount,ClusterRoleBinding,,system:controller:generic-garbage-collector,ClusterRole,,events,"create, patch, update"
+,,,,,,*,*,"delete, get, list, patch, update, watch"
+,,,,,,events.k8s.io,events,"create, patch, update"
+horizontal-pod-autoscaler,ServiceAccount,ClusterRoleBinding,,system:controller:horizontal-pod-autoscaler,ClusterRole,,events,"create, patch, update"
+,,,,,,,pods,list
+,,,,,,,services/proxy.http:heapster:,get
+,,,,,,*,*/scale,"get, update"
+,,,,,,autoscaling,horizontalpodautoscalers,"get, list, watch"
+,,,,,,autoscaling,horizontalpodautoscalers/status,update
+,,,,,,custom.metrics.k8s.io,*,"get, list"
+,,,,,,events.k8s.io,events,"create, patch, update"
+,,,,,,metrics.k8s.io,pods,list
+job-controller,ServiceAccount,ClusterRoleBinding,,system:controller:job-controller,ClusterRole,,events,"create, patch, update"
+,,,,,,,pods,"create, delete, list, patch, watch"
+,,,,,,batch,jobs,"get, list, patch, update, watch"
+,,,,,,batch,jobs/finalizers,update
+,,,,,,batch,jobs/status,update
+,,,,,,events.k8s.io,events,"create, patch, update"
+ks-installer,ServiceAccount,ClusterRoleBinding,,ks-installer,ClusterRole,,*,*
+,,,,,,admissionregistration.k8s.io,*,*
+,,,,,,apiextensions.k8s.io,*,*
+,,,,,,apiregistration.k8s.io,*,*
+,,,,,,application.kubesphere.io,*,*
+,,,,,,apps,*,*
+,,,,,,auditing.kubesphere.io,*,*
+,,,,,,autoscaling,*,*
+,,,,,,batch,*,*
+,,,,,,certificates.k8s.io,*,*
+,,,,,,config.istio.io,*,*
+,,,,,,core.kubefed.io,*,*
+,,,,,,devops.kubesphere.io,*,*
+,,,,,,events.kubesphere.io,*,*
+,,,,,,extensions,*,*
+,,,,,,iam.kubesphere.io,*,*
+,,,,,,installer.kubesphere.io,*,*
+,,,,,,jaegertracing.io,*,*
+,,,,,,kiali.io,*,*
+,,,,,,kubeedge.kubesphere.io,*,*
+,,,,,,logging.kubesphere.io,*,*
+,,,,,,monitoring.coreos.com,*,*
+,,,,,,monitoring.kiali.io,*,*
+,,,,,,monitoring.kubesphere.io,*,*
+,,,,,,networking.istio.io,*,*
+,,,,,,networking.k8s.io,*,*
+,,,,,,notification.kubesphere.io,*,*
+,,,,,,policy,*,*
+,,,,,,rbac.authorization.k8s.io,*,*
+,,,,,,security.istio.io,*,*
+,,,,,,storage.k8s.io,*,*
+,,,,,,storage.kubesphere.io,*,*
+,,,,,,tenant.kubesphere.io,*,*
+,,,,,,types.kubefed.io,*,*
+kube-controller-manager,ServiceAccount,RoleBinding,kube-system,system::leader-locking-kube-controller-manager,Role,,configmaps,watch
+,,,,,,,configmaps.kube-controller-manager,"get, update"
+kube-dns,ServiceAccount,ClusterRoleBinding,,system:kube-dns,ClusterRole,,endpoints,"list, watch"
+,,,,,,,services,"list, watch"
+kube-proxy,ServiceAccount,ClusterRoleBinding,,system:node-proxier,ClusterRole,,endpoints,"list, watch"
+,,,,,,,events,"create, patch, update"
+,,,,,,,nodes,"get, list, watch"
+,,,,,,,services,"list, watch"
+,,,,,,discovery.k8s.io,endpointslices,"list, watch"
+,,,,,,events.k8s.io,events,"create, patch, update"
+kube-scheduler,ServiceAccount,RoleBinding,kube-system,system::leader-locking-kube-scheduler,Role,,configmaps,watch
+,,,,,,,configmaps.kube-scheduler,"get, update"
+namespace-controller,ServiceAccount,ClusterRoleBinding,,system:controller:namespace-controller,ClusterRole,,namespaces,"delete, get, list, watch"
+,,,,,,,namespaces/finalize,update
+,,,,,,,namespaces/status,update
+,,,,,,*,*,"delete, deletecollection, get, list"
+node-controller,ServiceAccount,ClusterRoleBinding,,system:controller:node-controller,ClusterRole,,events,"create, patch, update"
+,,,,,,,nodes,"delete, get, list, patch, update"
+,,,,,,,nodes/status,"patch, update"
+,,,,,,,pods,"delete, list"
+,,,,,,,pods/status,update
+,,,,,,events.k8s.io,events,"create, patch, update"
+persistent-volume-binder,ServiceAccount,ClusterRoleBinding,,system:controller:persistent-volume-binder,ClusterRole,,endpoints,"create, delete, get, update"
+,,,,,,,events,"create, patch, update, watch"
+,,,,,,,nodes,"get, list"
+,,,,,,,persistentvolumeclaims,"get, list, update, watch"
+,,,,,,,persistentvolumeclaims/status,update
+,,,,,,,persistentvolumes,"create, delete, get, list, update, watch"
+,,,,,,,persistentvolumes/status,update
+,,,,,,,pods,"create, delete, get, list, watch"
+,,,,,,,secrets,get
+,,,,,,,services,"create, delete, get"
+,,,,,,events.k8s.io,events,"create, patch, update"
+,,,,,,storage.k8s.io,storageclasses,"get, list, watch"
+pod-garbage-collector,ServiceAccount,ClusterRoleBinding,,system:controller:pod-garbage-collector,ClusterRole,,nodes,"get, list"
+,,,,,,,pods,"delete, list, watch"
+pv-protection-controller,ServiceAccount,ClusterRoleBinding,,system:controller:pv-protection-controller,ClusterRole,,events,"create, patch, update"
+,,,,,,,persistentvolumes,"get, list, update, watch"
+,,,,,,events.k8s.io,events,"create, patch, update"
+pvc-protection-controller,ServiceAccount,ClusterRoleBinding,,system:controller:pvc-protection-controller,ClusterRole,,events,"create, patch, update"
+,,,,,,,persistentvolumeclaims,"get, list, update, watch"
+,,,,,,,pods,"get, list, watch"
+,,,,,,events.k8s.io,events,"create, patch, update"
+replicaset-controller,ServiceAccount,ClusterRoleBinding,,system:controller:replicaset-controller,ClusterRole,,events,"create, patch, update"
+,,,,,,,pods,"create, delete, list, patch, watch"
+,,,,,,apps,replicasets,"get, list, update, watch"
+,,,,,,apps,replicasets/finalizers,update
+,,,,,,apps,replicasets/status,update
+,,,,,,events.k8s.io,events,"create, patch, update"
+,,,,,,extensions,replicasets,"get, list, update, watch"
+,,,,,,extensions,replicasets/finalizers,update
+,,,,,,extensions,replicasets/status,update
+replication-controller,ServiceAccount,ClusterRoleBinding,,system:controller:replication-controller,ClusterRole,,events,"create, patch, update"
+,,,,,,,pods,"create, delete, list, patch, watch"
+,,,,,,,replicationcontrollers,"get, list, update, watch"
+,,,,,,,replicationcontrollers/finalizers,update
+,,,,,,,replicationcontrollers/status,update
+,,,,,,events.k8s.io,events,"create, patch, update"
+resourcequota-controller,ServiceAccount,ClusterRoleBinding,,system:controller:resourcequota-controller,ClusterRole,,events,"create, patch, update"
+,,,,,,,resourcequotas/status,update
+,,,,,,*,*,"list, watch"
+,,,,,,events.k8s.io,events,"create, patch, update"
+root-ca-cert-publisher,ServiceAccount,ClusterRoleBinding,,system:controller:root-ca-cert-publisher,ClusterRole,,configmaps,"create, update"
+,,,,,,,events,"create, patch, update"
+,,,,,,events.k8s.io,events,"create, patch, update"
+route-controller,ServiceAccount,ClusterRoleBinding,,system:controller:route-controller,ClusterRole,,events,"create, patch, update"
+,,,,,,,nodes,"list, watch"
+,,,,,,,nodes/status,patch
+,,,,,,events.k8s.io,events,"create, patch, update"
+service-account-controller,ServiceAccount,ClusterRoleBinding,,system:controller:service-account-controller,ClusterRole,,events,"create, patch, update"
+,,,,,,,serviceaccounts,create
+,,,,,,events.k8s.io,events,"create, patch, update"
+service-controller,ServiceAccount,ClusterRoleBinding,,system:controller:service-controller,ClusterRole,,events,"create, patch, update"
+,,,,,,,nodes,"list, watch"
+,,,,,,,services,"get, list, watch"
+,,,,,,,services/status,"patch, update"
+,,,,,,events.k8s.io,events,"create, patch, update"
+statefulset-controller,ServiceAccount,ClusterRoleBinding,,system:controller:statefulset-controller,ClusterRole,,events,"create, patch, update"
+,,,,,,,persistentvolumeclaims,"create, get"
+,,,,,,,pods,"create, delete, get, list, patch, update, watch"
+,,,,,,apps,controllerrevisions,"create, delete, get, list, patch, update, watch"
+,,,,,,apps,statefulsets,"get, list, watch"
+,,,,,,apps,statefulsets/finalizers,update
+,,,,,,apps,statefulsets/status,update
+,,,,,,events.k8s.io,events,"create, patch, update"
+system:anonymous,User,RoleBinding,kube-public,kubeadm:bootstrap-signer-clusterinfo,Role,,configmaps.cluster-info,get
+system:kube-controller-manager,User,ClusterRoleBinding,,system:kube-controller-manager,ClusterRole,,serviceaccounts,"create, get, update"
+,,,,,,,configmaps,get
+,,,,,,,endpoints.kube-controller-manager,"get, update"
+,,,,,,,events,"create, patch, update"
+,,,,,,,namespaces,get
+,,,,,,,secrets,"create, delete, get, update"
+,,,,,,,endpoints,create
+,,,,,,,serviceaccounts/token,create
+,,,,,,*,*,"list, watch"
+,,,,,,authentication.k8s.io,tokenreviews,create
+,,,,,,authorization.k8s.io,subjectaccessreviews,create
+,,,,,,coordination.k8s.io,leases.kube-controller-manager,"get, update"
+,,,,,,coordination.k8s.io,leases,create
+,,,,,,events.k8s.io,events,"create, patch, update"
+system:kube-controller-manager,User,RoleBinding,kube-system,extension-apiserver-authentication-reader,Role,,configmaps.extension-apiserver-authentication,"get, list, watch"
+system:kube-controller-manager,User,RoleBinding,kube-system,system::leader-locking-kube-controller-manager,Role,,configmaps,watch
+,,,,,,,configmaps.kube-controller-manager,"get, update"
+system:kube-proxy,User,ClusterRoleBinding,,system:node-proxier,ClusterRole,,endpoints,"list, watch"
+,,,,,,,events,"create, patch, update"
+,,,,,,,nodes,"get, list, watch"
+,,,,,,,services,"list, watch"
+,,,,,,discovery.k8s.io,endpointslices,"list, watch"
+,,,,,,events.k8s.io,events,"create, patch, update"
+system:kube-scheduler,User,ClusterRoleBinding,,system:kube-scheduler,ClusterRole,,persistentvolumeclaims,"get, list, watch"
+,,,,,,,services,"get, list, watch"
+,,,,,,,pods/status,"patch, update"
+,,,,,,,pods/binding,create
+,,,,,,,persistentvolumes,"get, list, watch"
+,,,,,,,endpoints,create
+,,,,,,,bindings,create
+,,,,,,,pods,"delete, get, list, watch"
+,,,,,,,endpoints.kube-scheduler,"get, update"
+,,,,,,,events,"create, patch, update"
+,,,,,,,namespaces,"get, list, watch"
+,,,,,,,nodes,"get, list, watch"
+,,,,,,,replicationcontrollers,"get, list, watch"
+,,,,,,apps,replicasets,"get, list, watch"
+,,,,,,apps,statefulsets,"get, list, watch"
+,,,,,,authentication.k8s.io,tokenreviews,create
+,,,,,,authorization.k8s.io,subjectaccessreviews,create
+,,,,,,coordination.k8s.io,leases,create
+,,,,,,coordination.k8s.io,leases.kube-scheduler,"get, update"
+,,,,,,events.k8s.io,events,"create, patch, update"
+,,,,,,extensions,replicasets,"get, list, watch"
+,,,,,,policy,poddisruptionbudgets,"get, list, watch"
+,,,,,,storage.k8s.io,csinodes,"get, list, watch"
+,,,,,,storage.k8s.io,csistoragecapacities,"get, list, watch"
+,,,,,,storage.k8s.io,csidrivers,"get, list, watch"
+system:kube-scheduler,User,ClusterRoleBinding,,system:volume-scheduler,ClusterRole,,persistentvolumeclaims,"get, list, patch, update, watch"
+,,,,,,,persistentvolumes,"get, list, patch, update, watch"
+,,,,,,storage.k8s.io,storageclasses,"get, list, watch"
+system:kube-scheduler,User,RoleBinding,kube-system,extension-apiserver-authentication-reader,Role,,configmaps.extension-apiserver-authentication,"get, list, watch"
+system:kube-scheduler,User,RoleBinding,kube-system,system::leader-locking-kube-scheduler,Role,,configmaps,watch
+,,,,,,,configmaps.kube-scheduler,"get, update"
+token-cleaner,ServiceAccount,RoleBinding,kube-system,system:controller:token-cleaner,Role,,events,"create, patch, update"
+,,,,,,,secrets,"delete, get, list, watch"
+,,,,,,events.k8s.io,events,"create, patch, update"
+ttl-after-finished-controller,ServiceAccount,ClusterRoleBinding,,system:controller:ttl-after-finished-controller,ClusterRole,,events,"create, patch, update"
+,,,,,,batch,jobs,"delete, get, list, watch"
+,,,,,,events.k8s.io,events,"create, patch, update"
+ttl-controller,ServiceAccount,ClusterRoleBinding,,system:controller:ttl-controller,ClusterRole,,events,"create, patch, update"
+,,,,,,,nodes,"list, patch, update, watch"
+,,,,,,events.k8s.io,events,"create, patch, update"

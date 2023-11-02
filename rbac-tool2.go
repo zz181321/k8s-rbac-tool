@@ -164,6 +164,7 @@ type AccountInfo struct {
 var USERLIST []AccountInfo
 
 
+
 func parseInputFlags() InputFlags {
     var flags InputFlags
 
@@ -219,8 +220,7 @@ func parseInputFlags() InputFlags {
         os.Exit(1)
     }
 
-    for i := 2; i < len(args); i++ {
-        arg := args[i]
+    for i, arg := range args {
         switch arg {
         case "--nosys":
             flags.ExcludeSystem = true
@@ -232,30 +232,30 @@ func parseInputFlags() InputFlags {
             flags.OverpoweredOption = true
         case "--service":
             flags.Service = true
-       case "--only":
-        if i+1 < len(args) {
-            value := args[i+1]
-            if value == "clusterrolebinding" || value == "rolebinding" {
-                flags.OnlyOption = value
+        case "--only":
+            if i+1 < len(args) {
+                value := args[i+1]
+                if value == "clusterrolebinding" || value == "rolebinding" {
+                    flags.OnlyOption = value
+                } else {
+                    fmt.Println("Invalid value provided after '--only' option. Use 'clusterrolebinding' or 'rolebinding'.")
+                    os.Exit(1)
+                }
+                i++ // Skip the next argument
             } else {
-                fmt.Println("Invalid value provided after '--only' option. Use 'clusterrolebinding' or 'rolebinding'.")
+                fmt.Println("Expected a value after '--only' option.")
                 os.Exit(1)
             }
-            i++ // Skip the next argument
-        } else {
-            fmt.Println("Expected a value after '--only' option.")
-            os.Exit(1)
-        }
-    case "csv":
-        if len(args) > i+1 {
-            flags.CSVType = args[i+1]
-            i++ // Skip the next argument
-        } else {
-            fmt.Println("Expected a resource type for 'csv'.")
-            os.Exit(1)
+        case "csv":
+            if i+1 < len(args) {
+                flags.CSVType = args[i+1]
+            } else {
+                fmt.Println("Expected a resource type for 'csv'.")
+                os.Exit(1)
+            }
         }
     }
-}
+
     return flags
 }
 
@@ -904,15 +904,15 @@ func saveAsCSV(accounts []AccountInfo, flags InputFlags) {
     defer writer.Flush()
 
     if flags.MoreOption {
-        writer.Write([]string{"Account Name", "Kind", "Namespace", "RoleRefName", "RoleRefKind", "apiGroups", "Resources", "Verbs"})
+        writer.Write([]string{"Account Name", "Account Type", "Kind", "Namespace", "RoleRefName", "RoleRefKind", "apiGroups", "Resources", "Verbs"})
     } else {
-        writer.Write([]string{"Account Name", "Kind", "Namespace", "RoleRefName", "RoleRefKind"})
+        writer.Write([]string{"Account Name", "Account Type", "Kind", "Namespace", "RoleRefName", "RoleRefKind"})
     }
 
     for _, account := range accounts {
         for _, binding := range account.Bindings {
             var record []string
-            record = append(record, account.Name, binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
+            record = append(record, account.Name, account.Type, binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
 
             if flags.MoreOption && len(binding.ExtraRules) > 0 {
                 rule := binding.ExtraRules[0]
@@ -923,7 +923,7 @@ func saveAsCSV(accounts []AccountInfo, flags InputFlags) {
                 for _, rule := range binding.ExtraRules[1:] {
                     for _, apiGroup := range rule.APIGroups {
                         for _, resource := range rule.Resources {
-                            writer.Write([]string{"", "", "", "", "", apiGroup, resource, strings.Join(rule.Verbs, ", ")})
+                            writer.Write([]string{"","", "", "", "", "", apiGroup, resource, strings.Join(rule.Verbs, ", ")})
                         }
                     }
                 }
@@ -940,7 +940,7 @@ func main() {
     systemPrefixes := []string{"system:", "kubeadm:", "kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
     
     flags := parseInputFlags()
-    //fmt.Println("%v", flags)
+    fmt.Println(flags)
 
     
     refinedClusterRoles, err := dataStoreClusterRoles()
