@@ -944,7 +944,7 @@ func main() {
     systemPrefixes := []string{"system:", "kubeadm:", "kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
     
     flags := parseInputFlags()
-    fmt.Println(flags)
+//    fmt.Println(flags)
 
     
     refinedClusterRoles, err := dataStoreClusterRoles()
