@@ -14,7 +14,7 @@ import (
     "log"
 )
 
-const Version = "0.2.0"
+const Version = "0.4.0"
 
 type InputFlags struct {
     CommandType       string // "show" or "get"
@@ -25,7 +25,7 @@ type InputFlags struct {
     ExtendedOption    bool // --extended or -ext
     MoreOption        bool // --more
     OverpoweredOption bool // --overpowered or -op
-    WithService       bool // --with service
+    Service           bool // --with service
     OnlyOption        string // --only clusterrolebinding or rolebinding
 }
 
@@ -156,7 +156,8 @@ type BindingInfo struct {
 }
 
 type AccountInfo struct {
-    Name     	  string       `json:"name"`
+    Name     	  string        `json:"name"`
+    Type          string        `json:"kind"`
     Bindings	  []BindingInfo `json:"bindings"`
 }
 
@@ -171,14 +172,14 @@ func parseInputFlags() InputFlags {
     args := flag.Args()
 
     if len(args) == 0 {
-        fmt.Println("No arguments provided.")
+        fmt.Println("No arguments provided.\n")
         displayUsage()
         os.Exit(1)
-    } 
-    
+    }
+
     if len(args) == 1 && args[0] == "version" {
-	fmt.Println("RBAC Tool Version:", Version)
-	os.Exit(0)
+        fmt.Println("RBAC Tool Version:", Version)
+        os.Exit(0)
     }
 
     switch args[0] {
@@ -187,7 +188,7 @@ func parseInputFlags() InputFlags {
         if len(args) > 1 {
             switch args[1] {
             case "table":
-		flags.ResourceType = "table"
+                flags.ResourceType = "table"
                 if len(args) > 2 {
                     flags.TableType = args[2]
                 } else {
@@ -219,7 +220,7 @@ func parseInputFlags() InputFlags {
         os.Exit(1)
     }
 
-    for _, arg := range args {
+    for i, arg := range args {
         switch arg {
         case "--nosys":
             flags.ExcludeSystem = true
@@ -229,9 +230,25 @@ func parseInputFlags() InputFlags {
             flags.MoreOption = true
         case "--overpowered", "-op":
             flags.OverpoweredOption = true
+        case "--service":
+            flags.Service = true
+        case "--only":
+            if i+1 < len(args) {
+                value := args[i+1]
+                if value == "clusterrolebinding" || value == "rolebinding" {
+                    flags.OnlyOption = value
+                } else {
+                    fmt.Println("Invalid value provided after '--only' option. Use 'clusterrolebinding' or 'rolebinding'.")
+                    os.Exit(1)
+                }
+                i++ // Skip the next argument
+            } else {
+                fmt.Println("Expected a value after '--only' option.")
+                os.Exit(1)
+            }
         case "csv":
-            if len(args) > 2 {
-                flags.CSVType = args[2]
+            if i+1 < len(args) {
+                flags.CSVType = args[i+1]
             } else {
                 fmt.Println("Expected a resource type for 'csv'.")
                 os.Exit(1)
@@ -241,7 +258,6 @@ func parseInputFlags() InputFlags {
 
     return flags
 }
-
 
 
 func displayUsage() {
@@ -683,39 +699,43 @@ func displayRoleBindings(bindings []RoleBinding, flags InputFlags, systemPrefixe
 
 // user list table create & sort, merge
 
-func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []ClusterRoleBinding, roleBindings []RoleBinding) ([]AccountInfo, error) {
+func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []ClusterRoleBinding, roleBindings []RoleBinding, flags InputFlags) ([]AccountInfo, error) {
     // 초기화: USERLIST
     USERLIST = []AccountInfo{}
 
     // ClusterRoleBinding 데이터 처리
-    for _, clusterBinding := range clusterRoleBindings {
-        for _, subject := range clusterBinding.Subjects {
+    if flags.OnlyOption == "" || flags.OnlyOption == "clusterrolebinding" {
+	for _, clusterBinding := range clusterRoleBindings {
+            for _, subject := range clusterBinding.Subjects {
 //	    if subject.Kind == "User" && (!excludeSystem || !strings.HasPrefix(subject.Name, "system:")){
 //	    if subject.Kind == "User" && !strings.HasPrefix(subject.Name, "system:"){
-	    if subject.Kind == "User" {
-                info := BindingInfo{
-                    Kind:        clusterBinding.Kind,
-                    RoleRefName: clusterBinding.RoleRef.Name,
-                    RoleRefKind: clusterBinding.RoleRef.Kind,
+	        if subject.Kind == "User" || flags.Service && subject.Kind == "ServiceAccount" {
+                    info := BindingInfo{
+                        Kind:        clusterBinding.Kind,
+                        RoleRefName: clusterBinding.RoleRef.Name,
+                        RoleRefKind: clusterBinding.RoleRef.Kind,
+                    }
+                    addToTable(subject.Name, subject.Kind, info)
                 }
-                addToTable(subject.Name, info)
             }
         }
     }
 
     // RoleBinding 데이터 처리
-    for _, roleBinding := range roleBindings {
-        for _, subject := range roleBinding.Subjects {
+    if flags.OnlyOption == "" || flags.OnlyOption == "rolebinding" {
+        for _, roleBinding := range roleBindings {
+            for _, subject := range roleBinding.Subjects {
 //	    if subject.Kind == "User" && (!excludeSystem || !strings.HasPrefix(subject.Name, "system:")){
 //	    if subject.Kind == "User" && !strings.HasPrefix(subject.Name, "system:"){
-	    if subject.Kind == "User" {
-                info := BindingInfo{
-                    Kind:        roleBinding.Kind,
-                    Namespace:   roleBinding.Metadata.Namespace,
-                    RoleRefName: roleBinding.RoleRef.Name,
-                    RoleRefKind: roleBinding.RoleRef.Kind,
+	        if subject.Kind == "User" || flags.Service && subject.Kind == "ServiceAccount" {
+                    info := BindingInfo{
+                        Kind:        roleBinding.Kind,
+                        Namespace:   roleBinding.Metadata.Namespace,
+                        RoleRefName: roleBinding.RoleRef.Name,
+                        RoleRefKind: roleBinding.RoleRef.Kind,
+                    }
+                    addToTable(subject.Name, subject.Kind, info)
                 }
-                addToTable(subject.Name, info)
             }
         }
     }
@@ -727,14 +747,14 @@ func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []Cl
     return USERLIST, nil
 }
 
-func addToTable(name string, info BindingInfo) {
+func addToTable(name string, kind string, info BindingInfo) {
     for i, account := range USERLIST {
         if account.Name == name {
             USERLIST[i].Bindings = append(account.Bindings, info)
             return
         }
     }
-    USERLIST = append(USERLIST, AccountInfo{Name: name, Bindings: []BindingInfo{info}})
+    USERLIST = append(USERLIST, AccountInfo{Name: name, Type: kind, Bindings: []BindingInfo{info}})
 }
 
 func sortTable() {
@@ -797,15 +817,16 @@ func attachExtra(accounts []AccountInfo, refinedClusterRoles []Role, refinedRole
     return accounts
 }
 
+
 func displayProcessedTable(accounts []AccountInfo, flags InputFlags) {
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
 
     if flags.MoreOption {
-        fmt.Fprintln(w, "Account Name\tKind\tNamespace\tRoleRefName\tRoleRefKind\tapiGroups\tResources\tVerbs")
-        fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
+        fmt.Fprintln(w, "Account Name\tID Type\tKind\tNamespace\tRoleRefName\tRoleRefKind\tapiGroups\tResources\tVerbs")
+        fmt.Fprintln(w, "------------\t-------\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
     } else {
-        fmt.Fprintln(w, "Account Name\tKind\tNamespace\tRoleRefName\tRoleRefKind")
-        fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------")
+        fmt.Fprintln(w, "Account Name\tID Type\tKind\tNamespace\tRoleRefName\tRoleRefKind")
+        fmt.Fprintln(w, "------------\t-------\t----\t---------\t-----------\t-----------")
     }
 
     prevAccountName := ""
@@ -818,17 +839,25 @@ func displayProcessedTable(accounts []AccountInfo, flags InputFlags) {
         for _, binding := range account.Bindings {
             if flags.MoreOption && (binding.RoleRefName != prevRoleRefName || binding.Namespace != prevBindingNamespace) && prevRoleRefName != "" {
                 if account.Name == prevAccountName {
-                    fmt.Fprintln(w, "\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
+                    fmt.Fprintln(w, "\t\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
                 } else {
-                    fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
+                    fmt.Fprintln(w, "------------\t-------\t----\t---------\t-----------\t-----------\t---------\t---------\t-----")
                 }
             }
 
+	    // "ServiceAccount" to "Service", for short name
+            var idType string
+            if account.Type == "ServiceAccount" {
+                idType = "Service"
+            } else {
+                idType = account.Type
+            }
+
             if displayAccountName {
-                fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s", account.Name, binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s", account.Name, idType, binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
                 displayAccountName = false
             } else {
-                fmt.Fprintf(w, "\t%s\t%s\t%s\t%s", binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
+                fmt.Fprintf(w, "\t\t%s\t%s\t%s\t%s", binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
             }
 
             if flags.MoreOption && len(binding.ExtraRules) > 0 {
@@ -838,7 +867,7 @@ func displayProcessedTable(accounts []AccountInfo, flags InputFlags) {
                 for _, rule := range binding.ExtraRules[1:] { // skip the first rule since we already displayed it
                     for _, apiGroup := range rule.APIGroups {
                         for _, resource := range rule.Resources {
-                            fmt.Fprintf(w, "\t\t\t\t\t%s\t%s\t[%s]\n", apiGroup, resource, strings.Join(rule.Verbs, ", "))
+                            fmt.Fprintf(w, "\t\t\t\t\t\t%s\t%s\t[%s]\n", apiGroup, resource, strings.Join(rule.Verbs, ", "))
                         }
                     }
                 }
@@ -852,11 +881,12 @@ func displayProcessedTable(accounts []AccountInfo, flags InputFlags) {
         }
 
         if !flags.MoreOption {
-            fmt.Fprintln(w, "------------\t----\t---------\t-----------\t-----------")
+            fmt.Fprintln(w, "------------\t-------\t----\t---------\t-----------\t-----------")
         }
     }
     w.Flush()
 }
+
 
 
 func saveAsCSV(accounts []AccountInfo, flags InputFlags) {
@@ -878,15 +908,15 @@ func saveAsCSV(accounts []AccountInfo, flags InputFlags) {
     defer writer.Flush()
 
     if flags.MoreOption {
-        writer.Write([]string{"Account Name", "Kind", "Namespace", "RoleRefName", "RoleRefKind", "apiGroups", "Resources", "Verbs"})
+        writer.Write([]string{"Account Name", "Account Type", "Kind", "Namespace", "RoleRefName", "RoleRefKind", "apiGroups", "Resources", "Verbs"})
     } else {
-        writer.Write([]string{"Account Name", "Kind", "Namespace", "RoleRefName", "RoleRefKind"})
+        writer.Write([]string{"Account Name", "Account Type", "Kind", "Namespace", "RoleRefName", "RoleRefKind"})
     }
 
     for _, account := range accounts {
         for _, binding := range account.Bindings {
             var record []string
-            record = append(record, account.Name, binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
+            record = append(record, account.Name, account.Type, binding.Kind, binding.Namespace, binding.RoleRefName, binding.RoleRefKind)
 
             if flags.MoreOption && len(binding.ExtraRules) > 0 {
                 rule := binding.ExtraRules[0]
@@ -897,7 +927,7 @@ func saveAsCSV(accounts []AccountInfo, flags InputFlags) {
                 for _, rule := range binding.ExtraRules[1:] {
                     for _, apiGroup := range rule.APIGroups {
                         for _, resource := range rule.Resources {
-                            writer.Write([]string{"", "", "", "", "", apiGroup, resource, strings.Join(rule.Verbs, ", ")})
+                            writer.Write([]string{"","", "", "", "", "", apiGroup, resource, strings.Join(rule.Verbs, ", ")})
                         }
                     }
                 }
@@ -914,7 +944,7 @@ func main() {
     systemPrefixes := []string{"system:", "kubeadm:", "kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
     
     flags := parseInputFlags()
-    //fmt.Println("%v", flags)
+    fmt.Println(flags)
 
     
     refinedClusterRoles, err := dataStoreClusterRoles()
@@ -968,7 +998,7 @@ func main() {
 	case "get":
 	    switch flags.ResourceType {
 	    case "user":
-	        processedBindings, err := processBindings(refinedClusterRoles, refinedRoles, refinedClusterBindings, refinedRoleBindings)
+	        processedBindings, err := processBindings(refinedClusterRoles, refinedRoles, refinedClusterBindings, refinedRoleBindings, flags)            
 	        if err != nil {
 	            fmt.Println("Error processing bindings:", err)
 	            return
@@ -980,7 +1010,7 @@ func main() {
 	    case "csv":
 	        switch flags.CSVType {
 	        case "user":
-	            processedBindings, err := processBindings(refinedClusterRoles, refinedRoles, refinedClusterBindings, refinedRoleBindings)
+	            processedBindings, err := processBindings(refinedClusterRoles, refinedRoles, refinedClusterBindings, refinedRoleBindings, flags)
 	            if err != nil {
 	                fmt.Println("Error processing bindings:", err)
 	                return
