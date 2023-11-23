@@ -25,7 +25,8 @@ type InputFlags struct {
     ExtendedOption    bool // --extended or -ext
     MoreOption        bool // --more
     OverpoweredOption bool // --overpowered or -op
-    Service           bool // --with service
+    Service           bool // --service
+    Kubesphere        bool // --kubesphere or -ks
     OnlyOption        string // --only clusterrolebinding or rolebinding
 }
 
@@ -182,6 +183,8 @@ func parseInputFlags() InputFlags {
             flags.OverpoweredOption = true
         case "--service":
             flags.Service = true
+	case "--kubesphere", "-ks":
+	    flags.Kubesphere = true
         case "--only":
             if i+1 < len(args) {
                 value := args[i+1]
@@ -380,8 +383,12 @@ func storeKubernetesRoles(roleType string) ([]Role, error) {
     switch roleType {
     case "roles":
         cmd = exec.Command("kubectl", "get", "roles", "-A", "-o", "json")
+    case "workspaceroles":
+        cmd = exec.Command("kubectl", "get", "workspaceroles", "-A", "-o", "json")
     case "clusterroles":
         cmd = exec.Command("kubectl", "get", "clusterroles", "-o", "json")
+    case "globalroles":
+        cmd = exec.Command("kubectl", "get", "globalroles", "-o", "json")
     default:
         return nil, fmt.Errorf("Invalid role type: %s", roleType)
     }
@@ -851,17 +858,32 @@ func main() {
     flags := parseInputFlags()
 //    fmt.Println(flags)
 
-    
+    refinedRoles, err := storeKubernetesRoles("roles")
+    if err != nil {
+        fmt.Println("Error getting Role data:", err)
+        return
+    }
+
     refinedClusterRoles, err := storeKubernetesRoles("clusterroles")
     if err != nil {
         fmt.Println("Error getting Cluster Role data:", err)
         return
     }
 
-    refinedRoles, err := storeKubernetesRoles("roles")
-    if err != nil {
-        fmt.Println("Error getting Role data:", err)
+//for Kubesphere-specific Roles
+    if flags.Kubesphere {
+	refinedWorkspaceRoles, err := storeKubernetesRoles("workspaceroles")
+	if err != nil {
+	    fmt.Println("Error getting Kubesphere's Workspace Role data:", err)
+            return
+        }
+
+	refinedGlobalRoles, err := storeKubernetesRoles("globalroles")
+	if err != nil {
+            fmt.Println("Error getting Kubesphere's Global Role data:", err)
         return
+	}
+
     }
 
     refinedClusterBindings, err := storeBindings("clusterrolebindings")
@@ -882,10 +904,14 @@ func main() {
 	    switch flags.ResourceType {
 	    case "table":
 	        switch flags.TableType {
+		case "globalrole":
+	//            displayClusterRoles(refinedGlobalRoles, flags, systemPrefixes)
 	        case "clusterrole":
 	            displayClusterRoles(refinedClusterRoles, flags, systemPrefixes)
 	        case "clusterrolebinding":
 	            displayClusterRoleBindings(refinedClusterBindings, flags, systemPrefixes)
+	        case "workspacerole":
+	  //          displayRoles(refinedWorkspaceRoles, flags, systemPrefixes)
 	        case "role":
 	            displayRoles(refinedRoles, flags, systemPrefixes)
 	        case "rolebinding":
