@@ -466,6 +466,7 @@ func displayRoles(roles []Role, flags InputFlags, systemPrefixes []string) {
             for apiGroupIndex, apiGroup := range rule.APIGroups {
                 for resourceIndex, resource := range rule.Resources {
                     if apiGroupIndex == 0 && !displayedHeader {
+			// if it's a Workspace(a Concept from Kubesphere) do this. because the "workspace" is not describe in Metadata.Namespace
 			workspaceName, exists := role.Metadata.Labels["kubesphere.io/workspace"]
 			if exists {
 	                        fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t [%s]\n", workspaceName, role.Kind, role.Metadata.Name, apiGroup, resource, strings.Join(rule.Verbs, ", "))
@@ -601,13 +602,18 @@ func displayRoleBindings(bindings []RoleBinding, flags InputFlags, systemPrefixe
             }
 
             if !displayedHeader {
-                fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", 
-                    binding.Kind, binding.Metadata.Name, binding.Metadata.Namespace, binding.RoleRef.Kind, 
-                    binding.RoleRef.Name, subject.Kind, subject.Name, namespace)
-                displayedHeader = true
-            } else {
-                fmt.Fprintf(w, "\t\t\t\t\t%s\t%s\t%s\n", subject.Kind, subject.Name, namespace)  
-            }
+		// if it's a Workspace(a Concept from Kubesphere) do this. because the "workspace" is not describe in Metadata.Namespace
+		workspaceName, exists := binding.Metadata.Labels["kubesphere.io/workspace"]
+		if exists {
+		    fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", binding.Kind, binding.Metadata.Name, workspaceName, binding.RoleRef.Kind, binding.RoleRef.Name, subject.Kind, subject.Name, namespace)
+		} else {
+		    fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", binding.Kind, binding.Metadata.Name, binding.Metadata.Namespace, binding.RoleRef.Kind, binding.RoleRef.Name, subject.Kind, subject.Name, namespace)
+		}
+		
+                    displayedHeader = true
+                } else {
+ 		    fmt.Fprintf(w, "\t\t\t\t\t%s\t%s\t%s\n", subject.Kind, subject.Name, namespace)  
+                }
 
             // Only print the separator line after the last subject of a binding
             if index == len(binding.Subjects) - 1 {
