@@ -425,6 +425,10 @@ func storeBindings(resourceType string) ([]RoleBinding, error) {
         cmd = exec.Command("kubectl", "get", "clusterrolebindings", "-o", "json")
     case "rolebindings":
         cmd = exec.Command("kubectl", "get", "rolebindings", "-A", "-o", "json")
+    case "workspacerolebindings":
+        cmd = exec.Command("kubectl", "get", "workspacerolebindings", "-A", "-o", "json")
+    case "rolebindings":
+        cmd = exec.Command("kubectl", "get", "globalrolebindings", "-o", "json")
     default:
         return nil, fmt.Errorf("invalid resource type: %s", resourceType)
     }
@@ -932,7 +936,7 @@ func main() {
 	        case "rolebinding":
 	            displayRoleBindings(refinedRoleBindings, flags, systemPrefixes)
 		case "globalrole":
-	            displayRoles(refinedGlobalRoles, flags, systemPrefixes)
+	            displayclusterRoles(refinedGlobalRoles, flags, systemPrefixes)
 	        case "globalrolebinding":
 	            displayRoleBindings(refinedGlobalRoleBindings, flags, systemPrefixes)
 	        case "workspacerole":
