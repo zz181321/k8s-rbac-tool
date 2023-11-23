@@ -852,11 +852,18 @@ func saveAsCSV(accounts []AccountInfo, flags InputFlags) {
 
 
 func main() {
+    var refinedWorkspaceRoles	     []Role
+    var refinedGlobalRoles	     []Role
+    var refinedWorkspaceRoleBindings []RoleBinding
+    var refinedGlobalRoleBindings    []RoleBinding
+
+    flags := parseInputFlags()
+//    fmt.Println(flags)
+
 //    systemPrefixes := []string{"system:", "kubeadm:", "calico","kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
     systemPrefixes := []string{"system:", "kubeadm:", "kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
     
-    flags := parseInputFlags()
-//    fmt.Println(flags)
+
 
     refinedRoles, err := storeKubernetesRoles("roles")
     if err != nil {
@@ -868,22 +875,6 @@ func main() {
     if err != nil {
         fmt.Println("Error getting Cluster Role data:", err)
         return
-    }
-
-//for Kubesphere-specific Roles
-    if flags.Kubesphere {
-	refinedWorkspaceRoles, err := storeKubernetesRoles("workspaceroles")
-	if err != nil {
-	    fmt.Println("Error getting Kubesphere's Workspace Role data:", err)
-            return
-        }
-
-	refinedGlobalRoles, err := storeKubernetesRoles("globalroles")
-	if err != nil {
-            fmt.Println("Error getting Kubesphere's Global Role data:", err)
-        return
-	}
-
     }
 
     refinedClusterBindings, err := storeBindings("clusterrolebindings")
@@ -898,24 +889,56 @@ func main() {
         return
     }
 
+    if flags.Kubesphere {
+	// := 연산자는 새로운 변수를 선언하고 초기화하는데 사용되므로, 기존에 선언된 변수에 값을 할당하기 위해 = 연산자를 사용
+	refinedWorkspaceRoles, err = storeKubernetesRoles("workspaceroles")
+	if err != nil {
+	fmt.Println("Error getting Kubesphere's Workspace Role data:", err)
+        return
+	}
+
+	refinedGlobalRoles, err = storeKubernetesRoles("globalroles")
+	if err != nil {
+	fmt.Println("Error getting Kubesphere's Global Role data:", err)
+        return
+	}
+    
+	refinedWorkspaceRoleBindings, err = storeBindings("workspacerolebindings")
+	if err != nil {
+        fmt.Println("Error getting Workspace Role Binding data:", err)
+        return
+    	}
+
+	refinedGlobalRoleBindings, err = storeBindings("globalrolebindings")
+	if err != nil {
+        fmt.Println("Error getting Global Role Binding data:", err)
+        return
+	}
+
+    }
+
 
  switch flags.CommandType {
 	case "show":
 	    switch flags.ResourceType {
 	    case "table":
 	        switch flags.TableType {
-		case "globalrole":
-	//            displayClusterRoles(refinedGlobalRoles, flags, systemPrefixes)
 	        case "clusterrole":
 	            displayClusterRoles(refinedClusterRoles, flags, systemPrefixes)
 	        case "clusterrolebinding":
 	            displayClusterRoleBindings(refinedClusterBindings, flags, systemPrefixes)
-	        case "workspacerole":
-	  //          displayRoles(refinedWorkspaceRoles, flags, systemPrefixes)
 	        case "role":
 	            displayRoles(refinedRoles, flags, systemPrefixes)
 	        case "rolebinding":
 	            displayRoleBindings(refinedRoleBindings, flags, systemPrefixes)
+		case "globalrole":
+	            displayRoles(refinedGlobalRoles, flags, systemPrefixes)
+	        case "globalrolebinding":
+	            displayRoleBindings(refinedGlobalRoleBindings, flags, systemPrefixes)
+	        case "workspacerole":
+	            displayRoles(refinedWorkspaceRoles, flags, systemPrefixes)
+	        case "workspacerolebinding":
+	            displayRoleBindings(refinedWorkspaceRoleBindings, flags, systemPrefixes)
 	        default:
 	            displayUsage()
 	        }
