@@ -427,7 +427,7 @@ func storeBindings(resourceType string) ([]RoleBinding, error) {
         cmd = exec.Command("kubectl", "get", "rolebindings", "-A", "-o", "json")
     case "workspacerolebindings":
         cmd = exec.Command("kubectl", "get", "workspacerolebindings", "-A", "-o", "json")
-    case "rolebindings":
+    case "globalrolebindings":
         cmd = exec.Command("kubectl", "get", "globalrolebindings", "-o", "json")
     default:
         return nil, fmt.Errorf("invalid resource type: %s", resourceType)
@@ -466,8 +466,14 @@ func displayRoles(roles []Role, flags InputFlags, systemPrefixes []string) {
             for apiGroupIndex, apiGroup := range rule.APIGroups {
                 for resourceIndex, resource := range rule.Resources {
                     if apiGroupIndex == 0 && !displayedHeader {
-                        fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t [%s]\n", role.Metadata.Namespace, role.Kind, role.Metadata.Name, apiGroup, resource, strings.Join(rule.Verbs, ", "))
-                        displayedHeader = true
+			workspaceName, exists := role.Metadata.Labels["kubesphere.io/workspace"]
+			if exists {
+	                        fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t [%s]\n", workspaceName, role.Kind, role.Metadata.Name, apiGroup, resource, strings.Join(rule.Verbs, ", "))
+        	                displayedHeader = true
+			    } else {
+	                        fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t [%s]\n", role.Metadata.Namespace, role.Kind, role.Metadata.Name, apiGroup, resource, strings.Join(rule.Verbs, ", "))
+        	                displayedHeader = true
+			    }
                     } else if apiGroupIndex == 0 && resourceIndex == 0 { // 첫 번째 apiGroup이지만 resource는 첫 번째가 아닐 경우
                         fmt.Fprintf(w, "\t\t\t%s\t%s\t [%s]\n", apiGroup, resource, strings.Join(rule.Verbs, ", "))
                     } else { // 첫 번째 apiGroup이 아닐 경우
@@ -936,7 +942,7 @@ func main() {
 	        case "rolebinding":
 	            displayRoleBindings(refinedRoleBindings, flags, systemPrefixes)
 		case "globalrole":
-	            displayclusterRoles(refinedGlobalRoles, flags, systemPrefixes)
+	            displayClusterRoles(refinedGlobalRoles, flags, systemPrefixes)
 	        case "globalrolebinding":
 	            displayRoleBindings(refinedGlobalRoleBindings, flags, systemPrefixes)
 	        case "workspacerole":
