@@ -37,9 +37,9 @@ type Role struct {
     Rules      []RoleRule   `json:"rules"`
 }
 type RoleMetadata struct {
-    Annotations        map[string]string `json:"annotations"`
+    Annotations        map[string]string `json:"annotations,omitempty"`
     CreationTimestamp  string            `json:"creationTimestamp"`
-    Labels             map[string]string `json:"labels"`
+    Labels             map[string]string `json:"labels,omitempty"`
     Name               string            `json:"name"`
     Namespace          string            `json:"namespace,omitempty"`
     ResourceVersion    string            `json:"resourceVersion"`
@@ -85,7 +85,7 @@ type BindingSubject struct {
     Namespace string `json:"namespace,omitempty"`
 }
 
-// it's a custom field from KubeSphere
+// it's a custom field add by KubeSphere
 type OwnerReference struct {
 	APIVersion string `json:"apiVersion"`
 	Kind       string `json:"kind"`

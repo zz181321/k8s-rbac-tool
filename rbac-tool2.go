@@ -138,12 +138,22 @@ func parseInputFlags() InputFlags {
         flags.CommandType = "show"
         if len(args) > 1 {
             switch args[1] {
-            case "table":
-                flags.ResourceType = "table"
+	    case "role", "rolebinding", "clusterrole", "clusterrolebinding":
+		flags.ResourceType = "table"
+		flags.TableType = args[1]
+            case "kubesphere":
                 if len(args) > 2 {
-                    flags.TableType = args[2]
+		    flags.Kubesphere = true
+		    switch args[2] {
+		    case "workspacerole", "workspacerolebinding", "globalrole", "globalrolebinding":
+			flags.ResourceType = "table"
+			flags.TableType = args[2]
+		    default:
+			fmt.Println("Invalid table type for 'show kubesphere'.")
+			os.Exit(1)
+		    }
                 } else {
-                    fmt.Println("Expected a table type argument after 'show table'.")
+                    fmt.Println("Expected a table type argument after 'show kubesphere'.")
                     os.Exit(1)
                 }
             case "core":
@@ -466,7 +476,7 @@ func displayRoles(roles []Role, flags InputFlags, systemPrefixes []string) {
             for apiGroupIndex, apiGroup := range rule.APIGroups {
                 for resourceIndex, resource := range rule.Resources {
                     if apiGroupIndex == 0 && !displayedHeader {
-			// if it's a Workspace(a Concept from Kubesphere) do this. because the "workspace" is not describe in Metadata.Namespace
+			// if it's a Workspace(a Concept from Kubesphere), do this, because the 'workspace' is not described in Metadata.Namespace
 			workspaceName, exists := role.Metadata.Labels["kubesphere.io/workspace"]
 			if exists {
 	                        fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t [%s]\n", workspaceName, role.Kind, role.Metadata.Name, apiGroup, resource, strings.Join(rule.Verbs, ", "))
