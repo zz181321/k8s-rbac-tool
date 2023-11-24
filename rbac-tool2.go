@@ -19,14 +19,14 @@ const Version = "0.6.0"
 type InputFlags struct {
     CommandType       string // "show" or "get"
     ResourceType      string // "table" or "user" or "csv"
-    TableType	      string // roles
+    TableType	      string // k8s roles & bindings, plus kubesphere roles & bindings
     CSVType           string 
     ExcludeSystem     bool // --nosys
     ExtendedOption    bool // --extended or -ext
     MoreOption        bool // --more
     OverpoweredOption bool // --overpowered or -op
     Service           bool // --service
-    Kubesphere        bool // --kubesphere or -ks
+    Kubesphere        bool // is kubesphere specific? or not kubesphere
     OnlyOption        string // --only clusterrolebinding or rolebinding
 }
 
