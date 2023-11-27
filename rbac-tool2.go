@@ -222,37 +222,46 @@ func parseInputFlags() InputFlags {
     return flags
 }
 
-
 func displayUsage() {
-    fmt.Println("===== RBAC Tool Usage =====")
-
-    // Display tables section
-    fmt.Println("[Display Tables for Validating RBAC Data]")
-    fmt.Println("  go run rbac-tool.go show table <type> [--nosys]")
-    fmt.Println("    <type>: role | rolebinding | clusterrole | clusterrolebinding")
-    fmt.Println("    --nosys: Exclude system roles/bindings.")
-    fmt.Println("    --extended / -ext : show extra attributes (only work with Cluster Role Bindings.)")
-
-    // Display CORE API Resources section
-    fmt.Println("[Built-in CORE API Resources]")
-    fmt.Println("  go run rbac-tool.go show core")
-
-    // Verbs from api-resources section
-    fmt.Println("[Available Verbs from API-Resources]")
-    fmt.Println("  go run rbac-tool.go show verbs")
-
-    // List user permissions section
-    fmt.Println("[List User Permissions]")
-    fmt.Println("  go run rbac-tool.go get user [--more] [--overpowered | -op]")
-    fmt.Println("    --more : Show user list table with more attributes.")
-    fmt.Println("    --overpowered / -op: Highlight overpowered permissions.")
-
-    // CSV output section
-    fmt.Println("[Get CSV Output]")
-    fmt.Println("  go run rbac-tool.go get csv [user | role | rolebinding | clusterrole | clusterrolebinding]")
-
-    fmt.Println("===========================")
+    fmt.Println("+-----------------------------------------------------------------------------------+")
+    fmt.Println("|                                    RBAC Tool Usage                                |")
+    fmt.Println("|-----------------------------------------------------------------------------------|")
+    fmt.Println("| View a list of user permissions in Kubernetes                                     |")
+    fmt.Println("|-----------------------------------------------------------------------------------|")
+    fmt.Println("| show role [--nosys]                                                               |")
+    fmt.Println("| show rolebinding [--nosys]                                                        |")
+    fmt.Println("| show clusterrole [--nosys]                                                        |")
+    fmt.Println("| show clusterrolebinding [--nosys] [--extended | -ext]                             |")
+    fmt.Println("|                                                                                   |")
+    fmt.Println("|-----------------------------------------------------------------------------------|")
+    fmt.Println("| View a list of user permissions added by Kubesphere                               |")
+    fmt.Println("|-----------------------------------------------------------------------------------|")
+    fmt.Println("| show kubesphere workspacerole [--nosys]                                           |")
+    fmt.Println("| show kubesphere workspacerolebinding [--nosys]                                    |")
+    fmt.Println("| show kubesphere globalrole [--nosys]                                              |")
+    fmt.Println("| show kubesphere globalrolebinding [--nosys]                                       |")
+    fmt.Println("|                                                                                   |")
+    fmt.Println("|-----------------------------------------------------------------------------------|")
+    fmt.Println("| Get a list of user priviliges in Kubernetes, reordered around user accounts.      |")
+    fmt.Println("|-----------------------------------------------------------------------------------|")
+    fmt.Println("| get user [--more] [--service] [--only (with parameters)]                          |")
+    fmt.Println("|                                                                                   |")
+    fmt.Println("| --only option can take multiple values, separated by commas.                      |")
+    fmt.Println("| the parameters: rolebinding, clusterrolebinding, workspacebinding, globalbinding  |")
+    fmt.Println("|                                                                                   |")
+    fmt.Println("| Example:                                                                          |")
+    fmt.Println("| get user --more --service --only rolebinding, clusterrolebinding                  |")
+    fmt.Println("|                                                                                   |")
+    fmt.Println("|-----------------------------------------------------------------------------------|")
+    fmt.Println("| Save a list of user priviliges in Kubernetes as a CSV file.                       |")
+    fmt.Println("|-----------------------------------------------------------------------------------|")
+    fmt.Println("| get csv user [ (The options are the same as those for 'get user'.) ]              |")
+    fmt.Println("|                                                                                   |")
+    fmt.Println("| Example:                                                                          |")
+    fmt.Println("| get csv user --more --service --only rolebinding, clusterrolebinding              |")
+    fmt.Println("+-----------------------------------------------------------------------------------+")
 }
+
 
 // initialize for sorting rules by APIGroup
 type SortByAPIGroup []RoleRule
