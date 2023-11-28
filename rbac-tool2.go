@@ -763,13 +763,14 @@ func processKubeSphereBindings(clusterRoles []Role, roles []Role, workspaceRoles
     }
 
     if len(flags.OnlyOption) == 0 || containsWorkspaceRoleBinding {
-	for _, clusterBinding := range workspaceRoleBindings {
-            for _, subject := range clusterBinding.Subjects {
+	for _, workspaceBinding := range workspaceRoleBindings {
+            for _, subject := range workspaceBinding.Subjects {
 	        if subject.Kind == "User" || flags.Service && subject.Kind == "ServiceAccount" {
                     info := BindingInfo{
-                        Kind:        clusterBinding.Kind,
-                        RoleRefName: clusterBinding.RoleRef.Name,
-                        RoleRefKind: clusterBinding.RoleRef.Kind,
+                        Kind:        workspaceBinding.Kind,
+			Namespace:   workspaceBinding.Metadata.Labels["kubesphere.io/workspace"],
+                        RoleRefName: workspaceBinding.RoleRef.Name,
+                        RoleRefKind: workspaceBinding.RoleRef.Kind,
                     }
                     addToTable(subject.Name, subject.Kind, info)
                 }
@@ -778,13 +779,13 @@ func processKubeSphereBindings(clusterRoles []Role, roles []Role, workspaceRoles
     }
 
     if len(flags.OnlyOption) == 0 || containsGlobalRoleBinding {
-	for _, clusterBinding := range globalRoleBindings {
-            for _, subject := range clusterBinding.Subjects {
+	for _, globalBinding := range globalRoleBindings {
+            for _, subject := range globalBinding.Subjects {
 	        if subject.Kind == "User" || flags.Service && subject.Kind == "ServiceAccount" {
                     info := BindingInfo{
-                        Kind:        clusterBinding.Kind,
-                        RoleRefName: clusterBinding.RoleRef.Name,
-                        RoleRefKind: clusterBinding.RoleRef.Kind,
+                        Kind:        globalBinding.Kind,
+                        RoleRefName: globalBinding.RoleRef.Name,
+                        RoleRefKind: globalBinding.RoleRef.Kind,
                     }
                     addToTable(subject.Name, subject.Kind, info)
                 }
