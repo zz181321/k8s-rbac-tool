@@ -18,17 +18,17 @@ const Version = "0.6.0"
 
 type InputFlags struct {
     CommandType       string // "show" or "get"
-    ResourceType      string // "table" or "user" or "csv"
-    TableType	      string // k8s roles & bindings, plus kubesphere roles & bindings
-    CSVType           string 
+    ResourceType      string // "user" or "csv"
+    TableType         string // K8s roles and bindings, plus KubeSphere roles and bindings
+    CSVType           string
     ExcludeSystem     bool // --nosys
     ExtendedOption    bool // --extended or -ext
     MoreOption        bool // --more
-    OverpoweredOption bool // --overpowered or -op
     Service           bool // --service
-    Kubesphere        bool // is kubesphere specific? or not kubesphere
-    OnlyOption        string // --only clusterrolebinding or rolebinding
+    KubeSphere        bool // Is it KubeSphere specific? (or not KubeSphere)
+    OnlyOption        []string // --only: print with role bindings, cluster role bindings, workspace role bindings, global role bindings
 }
+
 
 // structures for Roles (Typically, roles are associated with a NAMESPACE.)
 type Role struct {
@@ -143,7 +143,7 @@ func parseInputFlags() InputFlags {
 		flags.TableType = args[1]
             case "kubesphere":
                 if len(args) > 2 {
-		    flags.Kubesphere = true
+		    flags.KubeSphere = true
 		    switch args[2] {
 		    case "workspacerole", "workspacerolebinding", "globalrole", "globalrolebinding":
 			flags.ResourceType = "table"
@@ -189,22 +189,25 @@ func parseInputFlags() InputFlags {
             flags.ExtendedOption = true
         case "--more":
             flags.MoreOption = true
-        case "--overpowered", "-op":
-            flags.OverpoweredOption = true
         case "--service":
             flags.Service = true
 	case "--kubesphere", "-ks":
-	    flags.Kubesphere = true
+	    flags.KubeSphere = true
         case "--only":
             if i+1 < len(args) {
                 value := args[i+1]
-                if value == "clusterrolebinding" || value == "rolebinding" {
-                    flags.OnlyOption = value
-                } else {
-                    fmt.Println("Invalid value provided after '--only' option. Use 'clusterrolebinding' or 'rolebinding'.")
-                    os.Exit(1)
+                onlyOptions := strings.Split(value, ",") // 쉼표로 구분된 값들을 분리
+                for _, option := range onlyOptions {
+                    option = strings.TrimSpace(option) // 공백 제거
+                    // 유효한 옵션인지 확인
+                    if option == "rolebinding" || option == "clusterrolebinding" || option == "workspacerolebinding" || option == "globalrolebinding" {
+                        flags.OnlyOption = append(flags.OnlyOption, option)
+                    } else {
+                        fmt.Printf("Invalid value provided after '--only' option: '%s'.\n", option)
+                        os.Exit(1)
+                    }
                 }
-                i++ // Skip the next argument
+                i++ // skip the next argument (다음 인수 건너뛰기)
             } else {
                 fmt.Println("Expected a value after '--only' option.")
                 os.Exit(1)
@@ -628,10 +631,10 @@ func displayRoleBindings(bindings []RoleBinding, flags InputFlags, systemPrefixe
 		} else {
 		    fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", binding.Kind, binding.Metadata.Name, binding.Metadata.Namespace, binding.RoleRef.Kind, binding.RoleRef.Name, subject.Kind, subject.Name, namespace)
 		}
-		
+
                     displayedHeader = true
                 } else {
- 		    fmt.Fprintf(w, "\t\t\t\t\t%s\t%s\t%s\n", subject.Kind, subject.Name, namespace)  
+		    fmt.Fprintf(w, "\t\t\t\t\t%s\t%s\t%s\n", subject.Kind, subject.Name, namespace)
                 }
 
             // Only print the separator line after the last subject of a binding
@@ -649,9 +652,28 @@ func displayRoleBindings(bindings []RoleBinding, flags InputFlags, systemPrefixe
 func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []RoleBinding, roleBindings []RoleBinding, flags InputFlags) ([]AccountInfo, error) {
     // 초기화: USERLIST
     USERLIST = []AccountInfo{}
+    containsRoleBinding := false
+    containsClusterRoleBinding := false
+    containsWorkspaceRoleBinding := false
+    containsGlobalRoleBinding := false
+    
+    for _, option:= range flags.OnlyOption {
+	if option == "rolebinding" {
+	    containsRoleBinding = true
+	} else if option == "clusterrolebinding" {
+	    containsClusterRoleBinding = true 
+	} else if option == "workspacerolebinding" {
+	    containsWorkspaceRoleBinding = true
+	} else if option == "globalrolebinding" {
+	    containsGlobalRoleBinding = true
+	}
+    }
+
+	
 
     // ClusterRoleBinding 데이터 처리
-    if flags.OnlyOption == "" || flags.OnlyOption == "clusterrolebinding" {
+    // if flags.OnlyOption == "" || flags.OnlyOption == "clusterrolebinding" {
+    if len(flags.OnlyOption) == 0 || containsClusterRoleBinding {
 	for _, clusterBinding := range clusterRoleBindings {
             for _, subject := range clusterBinding.Subjects {
 //	    if subject.Kind == "User" && (!excludeSystem || !strings.HasPrefix(subject.Name, "system:")){
@@ -669,7 +691,8 @@ func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []Ro
     }
 
     // RoleBinding 데이터 처리
-    if flags.OnlyOption == "" || flags.OnlyOption == "rolebinding" {
+    //if flags.OnlyOption == "" || flags.OnlyOption == "rolebinding" {
+    if len(flags.OnlyOption) == 0 || containsRoleBinding {
         for _, roleBinding := range roleBindings {
             for _, subject := range roleBinding.Subjects {
 //	    if subject.Kind == "User" && (!excludeSystem || !strings.HasPrefix(subject.Name, "system:")){
@@ -686,6 +709,37 @@ func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []Ro
             }
         }
     }
+
+    if len(flags.OnlyOption) == 0 || containsWorkspaceRoleBinding {
+	for _, clusterBinding := range clusterRoleBindings {
+            for _, subject := range clusterBinding.Subjects {
+	        if subject.Kind == "User" || flags.Service && subject.Kind == "ServiceAccount" {
+                    info := BindingInfo{
+                        Kind:        clusterBinding.Kind,
+                        RoleRefName: clusterBinding.RoleRef.Name,
+                        RoleRefKind: clusterBinding.RoleRef.Kind,
+                    }
+                    addToTable(subject.Name, subject.Kind, info)
+                }
+            }
+        }
+    }
+
+    if len(flags.OnlyOption) == 0 || containsGlobalRoleBinding {
+	for _, clusterBinding := range clusterRoleBindings {
+            for _, subject := range clusterBinding.Subjects {
+	        if subject.Kind == "User" || flags.Service && subject.Kind == "ServiceAccount" {
+                    info := BindingInfo{
+                        Kind:        clusterBinding.Kind,
+                        RoleRefName: clusterBinding.RoleRef.Name,
+                        RoleRefKind: clusterBinding.RoleRef.Kind,
+                    }
+                    addToTable(subject.Name, subject.Kind, info)
+                }
+            }
+        }
+    }
+
 
     sortTable()
     mergeAccounts()
@@ -924,7 +978,7 @@ func main() {
         return
     }
 
-    if flags.Kubesphere {
+    if flags.KubeSphere {
 	// := 연산자는 새로운 변수를 선언하고 초기화하는데 사용되므로, 기존에 선언된 변수에 값을 할당하기 위해 = 연산자를 사용
 	refinedWorkspaceRoles, err = storeKubernetesRoles("workspaceroles")
 	if err != nil {
