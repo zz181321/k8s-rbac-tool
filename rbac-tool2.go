@@ -762,7 +762,7 @@ func processKubeSphereBindings(clusterRoles []Role, roles []Role, workspaceRoles
         }
     }
 
-    if len(flags.OnlyOption) == 0 || containsWorkspaceRoleBinding {
+    if containsWorkspaceRoleBinding {
 	for _, workspaceBinding := range workspaceRoleBindings {
             for _, subject := range workspaceBinding.Subjects {
 	        if subject.Kind == "User" || flags.Service && subject.Kind == "ServiceAccount" {
@@ -778,7 +778,7 @@ func processKubeSphereBindings(clusterRoles []Role, roles []Role, workspaceRoles
         }
     }
 
-    if len(flags.OnlyOption) == 0 || containsGlobalRoleBinding {
+    if containsGlobalRoleBinding {
 	for _, globalBinding := range globalRoleBindings {
             for _, subject := range globalBinding.Subjects {
 	        if subject.Kind == "User" || flags.Service && subject.Kind == "ServiceAccount" {
@@ -1117,35 +1117,30 @@ func main() {
 	case "get":
 	    switch flags.ResourceType {
 	    case "user":
-		if flags.KubeSphere {
-		    if flags.MoreOption {
-			bindingResults, err := processKubeSphereBindings(refinedClusterRoles, refinedRoles, refinedWorkspaceRoles, refinedGlobalRoles, refinedClusterBindings, refinedRoleBindings, refinedWorkspaceRoleBindings, refinedGlobalRoleBindings, flags)
-	                if err != nil {
-			    fmt.Println("Error processing KubeSphere bindings:", err)
-	                    return
-			}
-			bindingResults = attachKubeSphereExtra(bindingResults, refinedClusterRoles, refinedRoles, refinedWorkspaceRoles, refinedGlobalRoles)
-	                displayProcessedTable(bindingResults, flags)
-		    } else {
-			bindingResults, err := processKubeSphereBindings(refinedClusterRoles, refinedRoles, refinedWorkspaceRoles, refinedGlobalRoles, refinedClusterBindings, refinedRoleBindings, refinedWorkspaceRoleBindings, refinedGlobalRoleBindings, flags)
-	                if err != nil {
-			    fmt.Println("Error processing KubeSphere bindings:", err)
-	                    return
-			}
-			displayProcessedTable(bindingResults, flags)
+		switch {
+		case flags.KubeSphere:
+		    bindingResults, err := processKubeSphereBindings(refinedClusterRoles, refinedRoles, refinedWorkspaceRoles, refinedGlobalRoles, refinedClusterBindings, refinedRoleBindings, refinedWorkspaceRoleBindings, refinedGlobalRoleBindings, flags)
+	            if err != nil {
+		        fmt.Println("Error processing KubeSphere bindings:", err)
+	                return
 		    }
-		}
 
-	        bindingResults, err := processBindings(refinedClusterRoles, refinedRoles, refinedClusterBindings, refinedRoleBindings, flags)            
-	        if err != nil {
-	            fmt.Println("Error processing bindings:", err)
-	            return
-	        }
-	        if flags.MoreOption {
-	            bindingResults = attachExtra(bindingResults, refinedClusterRoles, refinedRoles)
-	        }
-		// finally, print the data to a display
-	        displayProcessedTable(bindingResults, flags)
+		    if flags.MoreOption {
+		        bindingResults = attachKubeSphereExtra(bindingResults, refinedClusterRoles, refinedRoles, refinedWorkspaceRoles, refinedGlobalRoles)
+		    }
+	            displayProcessedTable(bindingResults, flags)
+		default:
+	            bindingResults, err := processBindings(refinedClusterRoles, refinedRoles, refinedClusterBindings, refinedRoleBindings, flags)            
+		        if err != nil {
+		            fmt.Println("Error processing bindings:", err)
+	                    return
+		        }
+	            if flags.MoreOption {
+	                bindingResults = attachExtra(bindingResults, refinedClusterRoles, refinedRoles)
+	            }
+		    // finally, print the data to a display
+	            displayProcessedTable(bindingResults, flags)
+		}
 	    case "csv":
 	        switch flags.CSVType {
 	        case "user":
