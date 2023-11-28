@@ -26,7 +26,7 @@ type InputFlags struct {
     MoreOption        bool // --more
     Service           bool // --service
     KubeSphere        bool // Is it KubeSphere specific? (or not KubeSphere)
-    OnlyOption        []string // --only: print with role bindings, cluster role bindings, workspace role bindings, global role bindings
+    OnlyOption        []string // --only with parameters: decide what kind of role you want to print.
 }
 
 
@@ -711,7 +711,7 @@ func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []Ro
     }
 
     if len(flags.OnlyOption) == 0 || containsWorkspaceRoleBinding {
-	for _, clusterBinding := range clusterRoleBindings {
+	for _, clusterBinding := range workspaceRoleBindings {
             for _, subject := range clusterBinding.Subjects {
 	        if subject.Kind == "User" || flags.Service && subject.Kind == "ServiceAccount" {
                     info := BindingInfo{
@@ -726,7 +726,7 @@ func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []Ro
     }
 
     if len(flags.OnlyOption) == 0 || containsGlobalRoleBinding {
-	for _, clusterBinding := range clusterRoleBindings {
+	for _, clusterBinding := range globalRoleBindings {
             for _, subject := range clusterBinding.Subjects {
 	        if subject.Kind == "User" || flags.Service && subject.Kind == "ServiceAccount" {
                     info := BindingInfo{
@@ -1046,6 +1046,13 @@ func main() {
 	            fmt.Println("Error processing bindings:", err)
 	            return
 	        }
+		if flags.KubeSphere {
+	            processedKubeSphereBindings, err := processBindings(refinedClusterRoles, refinedRoles, refinedWorkspaceRoles, refineGlobalRoles, refinedClusterBindings, refinedRoleBindings, refinedWorkspaceRoleBindings, refinedGlobalRoleBindings, flags)            
+	            if err != nil {
+	        	fmt.Println("Error processing KubeSphere bindings:", err)
+	                return
+		    }
+		}
 	        if flags.MoreOption {
 	            processedBindings = attachExtra(processedBindings, refinedClusterRoles, refinedRoles)
 	        }
