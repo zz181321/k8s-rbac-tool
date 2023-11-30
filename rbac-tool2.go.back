@@ -113,10 +113,11 @@ type AccountInfo struct {
 }
 
 var USERLIST []AccountInfo
-var flags InputFlags
+
 
 
 func parseInputFlags() InputFlags {
+    var flags InputFlags
 
     flag.Parse()
     args := flag.Args()
@@ -473,7 +474,7 @@ func storeBindings(resourceType string) ([]RoleBinding, error) {
 
 
 // function for drawing a table and displaying typical Roles
-func displayRoles(roles []Role, systemPrefixes []string) {
+func displayRoles(roles []Role, flags InputFlags, systemPrefixes []string) {
 
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
     fmt.Fprintln(w, "Namespace\tKind\tRole Name\tapiGroups\tResources\tVerbs")
@@ -513,7 +514,7 @@ func displayRoles(roles []Role, systemPrefixes []string) {
 }
 
 // function for drawing a table and displaying Cluster Roles
-func displayClusterRoles(roles []Role, systemPrefixes []string) {
+func displayClusterRoles(roles []Role, flags InputFlags, systemPrefixes []string) {
     
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
 	fmt.Fprintln(w, "Kind\tRole Name\tapiGroups\tResources\tVerbs")
@@ -544,7 +545,7 @@ func displayClusterRoles(roles []Role, systemPrefixes []string) {
 }
 
 
-func displayClusterRoleBindings(bindings []RoleBinding, systemPrefixes []string) {
+func displayClusterRoleBindings(bindings []RoleBinding, flags InputFlags, systemPrefixes []string) {
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
 
     header := "Binding Name\tRole Kind\tLink to (Role Name)\tSubject Kind\tSubject Name\tAllows to (namespace)"
@@ -606,7 +607,7 @@ func displayClusterRoleBindings(bindings []RoleBinding, systemPrefixes []string)
 
 
 
-func displayRoleBindings(bindings []RoleBinding, systemPrefixes []string) {
+func displayRoleBindings(bindings []RoleBinding, flags InputFlags, systemPrefixes []string) {
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
     fmt.Fprintln(w, "Kind\tBinding Name\tAllows to (namespace)\tRole Kind\tLink to (Role Name)\tSubject Kind\tSubject Name\tSubject Namespace")
     fmt.Fprintln(w, "----\t------------\t---------\t---------\t-------\t------------\t------------\t-----------------")
@@ -648,26 +649,21 @@ func displayRoleBindings(bindings []RoleBinding, systemPrefixes []string) {
 
 // user list table create & sort, merge
 
-func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []RoleBinding, roleBindings []RoleBinding) ([]AccountInfo, error) {
+func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []RoleBinding, roleBindings []RoleBinding, flags InputFlags) ([]AccountInfo, error) {
     // 초기화: USERLIST
     USERLIST = []AccountInfo{}
     containsRoleBinding := false
     containsClusterRoleBinding := false
-    containsWorkspaceRoleBinding := false
-    containsGlobalRoleBinding := false
     
     for _, option:= range flags.OnlyOption {
 	if option == "rolebinding" {
 	    containsRoleBinding = true
 	} else if option == "clusterrolebinding" {
-	    containsClusterRoleBinding = true 
-	} else if option == "workspacerolebinding" {
-	    containsWorkspaceRoleBinding = true
-	} else if option == "globalrolebinding" {
-	    containsGlobalRoleBinding = true
+	    containsClusterRoleBinding = true
 	}
     }
 
+	
 
     // ClusterRoleBinding 데이터 처리
     // if flags.OnlyOption == "" || flags.OnlyOption == "clusterrolebinding" {
@@ -708,11 +704,6 @@ func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []Ro
         }
     }
 
-    if flags.KubeSphere {
-
-    }
-
-
     sortTable()
     mergeAccounts()
 
@@ -720,7 +711,7 @@ func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []Ro
     return USERLIST, nil
 }
 
-func processKubeSphereBindings(clusterRoles []Role, roles []Role, workspaceRoles []Role, globalRoles []Role, clusterRoleBindings []RoleBinding, roleBindings []RoleBinding, workspaceRoleBindings []RoleBinding, globalRoleBindings []RoleBinding) ([]AccountInfo, error) {
+func processKubeSphereBindings(clusterRoles []Role, roles []Role, workspaceRoles []Role, globalRoles []Role, clusterRoleBindings []RoleBinding, roleBindings []RoleBinding, workspaceRoleBindings []RoleBinding, globalRoleBindings []RoleBinding, flags InputFlags) ([]AccountInfo, error) {
     // 초기화: USERLIST
     USERLIST = []AccountInfo{}
     containsRoleBinding := false
@@ -904,7 +895,7 @@ func attachKubeSphereExtra(accounts []AccountInfo, refinedClusterRoles []Role, r
 
 
 
-func displayProcessedTable(accounts []AccountInfo) {
+func displayProcessedTable(accounts []AccountInfo, flags InputFlags) {
     w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.Debug)
 
     if flags.MoreOption {
@@ -975,7 +966,7 @@ func displayProcessedTable(accounts []AccountInfo) {
 
 
 
-func saveAsCSV(accounts []AccountInfo) {
+func saveAsCSV(accounts []AccountInfo, flags InputFlags) {
     var filename string
 
     if flags.MoreOption {
@@ -1026,14 +1017,12 @@ func saveAsCSV(accounts []AccountInfo) {
 
 
 func main() {
-   // flags := parseInputFlags()
-    flags = parseInputFlags()
+    var refinedWorkspaceRoles	     []Role
+    var refinedGlobalRoles	     []Role
+    var refinedWorkspaceRoleBindings []RoleBinding
+    var refinedGlobalRoleBindings    []RoleBinding
 
-//    var refinedWorkspaceRoles	     []Role
-//    var refinedGlobalRoles	     []Role
-//    var refinedWorkspaceRoleBindings []RoleBinding
-//    var refinedGlobalRoleBindings    []RoleBinding
-
+    flags := parseInputFlags()
 //    fmt.Println(flags)
 
 //    systemPrefixes := []string{"system:", "kubeadm:", "calico","kubesphere","ks-","ingress-nginx","notification-manager","unity-","vxflexos"}
@@ -1100,21 +1089,21 @@ func main() {
 	    case "table":
 	        switch flags.TableType {
 	        case "clusterrole":
-	            displayClusterRoles(refinedClusterRoles, systemPrefixes)
+	            displayClusterRoles(refinedClusterRoles, flags, systemPrefixes)
 	        case "clusterrolebinding":
-	            displayClusterRoleBindings(refinedClusterBindings, systemPrefixes)
+	            displayClusterRoleBindings(refinedClusterBindings, flags, systemPrefixes)
 	        case "role":
-	            displayRoles(refinedRoles, systemPrefixes)
+	            displayRoles(refinedRoles, flags, systemPrefixes)
 	        case "rolebinding":
-	            displayRoleBindings(refinedRoleBindings, systemPrefixes)
+	            displayRoleBindings(refinedRoleBindings, flags, systemPrefixes)
 		case "globalrole":
-	            displayClusterRoles(refinedGlobalRoles, systemPrefixes)
+	            displayClusterRoles(refinedGlobalRoles, flags, systemPrefixes)
 	        case "globalrolebinding":
-	            displayRoleBindings(refinedGlobalRoleBindings, systemPrefixes)
+	            displayRoleBindings(refinedGlobalRoleBindings, flags, systemPrefixes)
 	        case "workspacerole":
-	            displayRoles(refinedWorkspaceRoles, systemPrefixes)
+	            displayRoles(refinedWorkspaceRoles, flags, systemPrefixes)
 	        case "workspacerolebinding":
-	            displayRoleBindings(refinedWorkspaceRoleBindings, systemPrefixes)
+	            displayRoleBindings(refinedWorkspaceRoleBindings, flags, systemPrefixes)
 	        default:
 	            displayUsage()
 	        }
@@ -1128,20 +1117,34 @@ func main() {
 	case "get":
 	    switch flags.ResourceType {
 	    case "user":
-	        bindingResults, err := processBindings(refinedClusterRoles, refinedRoles, refinedClusterBindings, refinedRoleBindings)            
-	        if err != nil {
-	            fmt.Println("Error processing bindings:", err)
-	            return
-	        }
-	        if flags.MoreOption {
-	            bindingResults = attachExtra(bindingResults, refinedClusterRoles, refinedRoles)
-	        }
-		// finally, print the data to a display
-	        displayProcessedTable(bindingResults)
+		switch {
+		case flags.KubeSphere:
+		    bindingResults, err := processKubeSphereBindings(refinedClusterRoles, refinedRoles, refinedWorkspaceRoles, refinedGlobalRoles, refinedClusterBindings, refinedRoleBindings, refinedWorkspaceRoleBindings, refinedGlobalRoleBindings, flags)
+	            if err != nil {
+		        fmt.Println("Error processing KubeSphere bindings:", err)
+	                return
+		    }
+
+		    if flags.MoreOption {
+		        bindingResults = attachKubeSphereExtra(bindingResults, refinedClusterRoles, refinedRoles, refinedWorkspaceRoles, refinedGlobalRoles)
+		    }
+	            displayProcessedTable(bindingResults, flags)
+		default:
+	            bindingResults, err := processBindings(refinedClusterRoles, refinedRoles, refinedClusterBindings, refinedRoleBindings, flags)            
+		        if err != nil {
+		            fmt.Println("Error processing bindings:", err)
+	                    return
+		        }
+	            if flags.MoreOption {
+	                bindingResults = attachExtra(bindingResults, refinedClusterRoles, refinedRoles)
+	            }
+		    // finally, print the data to a display
+	            displayProcessedTable(bindingResults, flags)
+		}
 	    case "csv":
 	        switch flags.CSVType {
 	        case "user":
-	            bindingResults, err := processBindings(refinedClusterRoles, refinedRoles, refinedClusterBindings, refinedRoleBindings)
+	            bindingResults, err := processBindings(refinedClusterRoles, refinedRoles, refinedClusterBindings, refinedRoleBindings, flags)
 	            if err != nil {
 	                fmt.Println("Error processing bindings:", err)
 	                return
@@ -1149,7 +1152,7 @@ func main() {
 	            if flags.MoreOption {
 	                bindingResults = attachExtra(bindingResults, refinedClusterRoles, refinedRoles)
 	            }
-	            saveAsCSV(bindingResults)
+	            saveAsCSV(bindingResults, flags)
 	        case "role":
 	            //saveAsCSV(refinedRoles, flags)
 	        case "rolebinding":
