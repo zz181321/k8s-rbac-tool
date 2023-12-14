@@ -655,17 +655,18 @@ func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []Ro
     containsClusterRoleBinding := false
     containsWorkspaceRoleBinding := false
     containsGlobalRoleBinding := false
-    
-    for _, option:= range flags.OnlyOption {
-	if option == "rolebinding" {
-	    containsRoleBinding = true
-	} else if option == "clusterrolebinding" {
-	    containsClusterRoleBinding = true 
-	} else if option == "workspacerolebinding" {
-	    containsWorkspaceRoleBinding = true
-	} else if option == "globalrolebinding" {
-	    containsGlobalRoleBinding = true
-	}
+
+    for _, option := range flags.OnlyOption {
+        switch option {
+        case "rolebinding":
+            containsRoleBinding = true
+        case "clusterrolebinding":
+            containsClusterRoleBinding = true
+        case "workspacerolebinding":
+            containsWorkspaceRoleBinding = true
+        case "globalrolebinding":
+            containsGlobalRoleBinding = true
+        }
     }
 
 
@@ -708,7 +709,7 @@ func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []Ro
         }
     }
 
-    if flags.KubeSphere {
+    if flags.KubeSphere || containsWorkspaceRoleBinding || containsGlobalRoleBinding {
 
     }
 
