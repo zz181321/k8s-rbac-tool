@@ -709,10 +709,27 @@ func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []Ro
     }
 
 
-if flags.KubeSphere {
+    if flags.KubeSphere {
+	kubesphereUserList, err := processKubeSphereBindings()
+	if err != nil {
+	    return nil, err
+	}
+	USERLIST = append(USERLIST, kubesphereUserList)
+    }
+
+    sortTable()
+    mergeAccounts()
+
+    // return VALUES that processed USERLIST
+    return USERLIST, nil
+}
+
+func processKubeSphereBindings ([]AccountInfo, error) {
+    // 초기화: USERLIST
+    USERLIST = []AccountInfo{}
     containsWorkspaceRoleBinding := false
     containsGlobalRoleBinding := false
-  
+
     for _, option := range flags.OnlyOption {
         switch option {
         case "workspacerolebinding":
@@ -725,10 +742,31 @@ if flags.KubeSphere {
         }
     }
 
-    if containsWorkspaceRoleBinding {
-        for _, workspaceBinding := range containsWorkspaceRoleBinding {
+    refinedWorkspaceRoles, err := storeKubernetesRoles("workspaceroles")
+    if err != nil {
+	fmt.Println("Error getting Kubesphere's Workspace Role data:", err)
+        return
+    }
+    refinedGlobalRoles, err := storeKubernetesRoles("globalroles")
+    if err != nil {
+	fmt.Println("Error getting Kubesphere's Global Role data:", err)
+        return
+    }
+    refinedWorkspaceRoleBindings, err = storeBindings("workspacerolebindings")
+    if err != nil {
+	fmt.Println("Error getting Workspace Role Binding data:", err)
+	return
+    }
+    refinedGlobalRoleBindings, err = storeBindings("globalrolebindings")
+    if err != nil {
+	fmt.Println("Error getting Global Role Binding data:", err)
+        return
+    }
+
+   if containsWorkspaceRoleBinding {
+        for _, workspaceBinding := range refinedWorkspaceRoleBindings {
             for _, subject := range workspaceBinding.Subjects {
-                if subject.Kind == "User" || (flags.Service && subject.Kind == "ServiceAccount") {
+                if subject.Kind == "User" || flags.Service && subject.Kind == "ServiceAccount" {
                     info := BindingInfo{
                         Kind:        workspaceBinding.Kind,
                         Namespace:   workspaceBinding.Metadata.Labels["kubesphere.io/workspace"],
@@ -741,9 +779,9 @@ if flags.KubeSphere {
         }
     }
     if containsGlobalRoleBinding {
-        for _, globalBinding := range globalRoleBindings {
+        for _, globalBinding := range refinedGlobalRoleBindings {
             for _, subject := range globalBinding.Subjects {
-                if subject.Kind == "User" || (flags.Service && subject.Kind == "ServiceAccount") {
+                if subject.Kind == "User" || flags.Service && subject.Kind == "ServiceAccount" {
                     info := BindingInfo{
                         Kind:        globalBinding.Kind,
                         RoleRefName: globalBinding.RoleRef.Name,
@@ -754,103 +792,6 @@ if flags.KubeSphere {
             }
         }
     }
-}
-
-
-    sortTable()
-    mergeAccounts()
-
-    // return VALUES that processed USERLIST
-    return USERLIST, nil
-}
-
-func processKubeSphereBindings(clusterRoles []Role, roles []Role, workspaceRoles []Role, globalRoles []Role, clusterRoleBindings []RoleBinding, roleBindings []RoleBinding, workspaceRoleBindings []RoleBinding, globalRoleBindings []RoleBinding) ([]AccountInfo, error) {
-    // 초기화: USERLIST
-    USERLIST = []AccountInfo{}
-    containsRoleBinding := false
-    containsClusterRoleBinding := false
-    containsWorkspaceRoleBinding := false
-    containsGlobalRoleBinding := false
-    
-    for _, option := range flags.OnlyOption {
-        switch option {
-        case "rolebinding":
-            containsRoleBinding = true
-        case "clusterrolebinding":
-            containsClusterRoleBinding = true
-        case "workspacerolebinding":
-            containsWorkspaceRoleBinding = true
-        case "globalrolebinding":
-            containsGlobalRoleBinding = true
-	default:
-	    fmt.Errorf("Unknown option '%s' encountered.", option)
-	    os.Exit(1)
-        }
-    }
-
-
-    if len(flags.OnlyOption) == 0 || containsClusterRoleBinding {
-	for _, clusterBinding := range clusterRoleBindings {
-            for _, subject := range clusterBinding.Subjects {
-	        if subject.Kind == "User" || flags.Service && subject.Kind == "ServiceAccount" {
-                    info := BindingInfo{
-                        Kind:        clusterBinding.Kind,
-                        RoleRefName: clusterBinding.RoleRef.Name,
-                        RoleRefKind: clusterBinding.RoleRef.Kind,
-                    }
-                    addToTable(subject.Name, subject.Kind, info)
-                }
-            }
-        }
-    }
-
-    if len(flags.OnlyOption) == 0 || containsRoleBinding {
-        for _, roleBinding := range roleBindings {
-            for _, subject := range roleBinding.Subjects {
-	        if subject.Kind == "User" || flags.Service && subject.Kind == "ServiceAccount" {
-                    info := BindingInfo{
-                        Kind:        roleBinding.Kind,
-                        Namespace:   roleBinding.Metadata.Namespace,
-                        RoleRefName: roleBinding.RoleRef.Name,
-                        RoleRefKind: roleBinding.RoleRef.Kind,
-                    }
-                    addToTable(subject.Name, subject.Kind, info)
-                }
-            }
-        }
-    }
-
-    if containsWorkspaceRoleBinding {
-	for _, workspaceBinding := range workspaceRoleBindings {
-            for _, subject := range workspaceBinding.Subjects {
-	        if subject.Kind == "User" || flags.Service && subject.Kind == "ServiceAccount" {
-                    info := BindingInfo{
-                        Kind:        workspaceBinding.Kind,
-			Namespace:   workspaceBinding.Metadata.Labels["kubesphere.io/workspace"],
-                        RoleRefName: workspaceBinding.RoleRef.Name,
-                        RoleRefKind: workspaceBinding.RoleRef.Kind,
-                    }
-                    addToTable(subject.Name, subject.Kind, info)
-                }
-            }
-        }
-    }
-
-    if containsGlobalRoleBinding {
-	for _, globalBinding := range globalRoleBindings {
-            for _, subject := range globalBinding.Subjects {
-	        if subject.Kind == "User" || flags.Service && subject.Kind == "ServiceAccount" {
-                    info := BindingInfo{
-                        Kind:        globalBinding.Kind,
-                        RoleRefName: globalBinding.RoleRef.Name,
-                        RoleRefKind: globalBinding.RoleRef.Kind,
-                    }
-                    addToTable(subject.Name, subject.Kind, info)
-                }
-            }
-        }
-    }
-
 
     sortTable()
     mergeAccounts()
