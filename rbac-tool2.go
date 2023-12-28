@@ -397,7 +397,7 @@ func displayCoreResources() {
     fmt.Println()
 }
 
-// Collects all Roles and Cluster Roles. In addition, it also collects Workspace Roles and Global Roles. It's the Kubesphere-specific role type.
+// Collects all Roles and Cluster Roles. In addition, it also collects Workspace Roles and Global Roles. It's a Kubesphere-specific role type.
 func storeKubernetesRoles(roleType string) ([]Role, error) {
     var cmd *exec.Cmd
 
@@ -648,9 +648,9 @@ func displayRoleBindings(bindings []RoleBinding, systemPrefixes []string) {
 
 // user list table create & sort, merge
 
-func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []RoleBinding, roleBindings []RoleBinding) ([]AccountInfo, error) {
-    // 초기화: USERLIST
-    USERLIST = []AccountInfo{}
+func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []RoleBinding, roleBindings []RoleBinding) {
+    // An empty slice of AccountInfo is created to store processed account information. | 초기화: USERLIST
+    //USERLIST = []AccountInfo{}
     containsRoleBinding := false
     containsClusterRoleBinding := false
     //containsWorkspaceRoleBinding := false
@@ -710,23 +710,24 @@ func processBindings(clusterRoles []Role, roles []Role, clusterRoleBindings []Ro
 
 
     if flags.KubeSphere {
-	kubesphereUserList, err := processKubeSphereBindings()
-	if err != nil {
-	    return nil, err
-	}
-	USERLIST = append(USERLIST, kubesphereUserList)
+	//kubesphereUserList, err := processKubeSphereBindings()
+	processKubeSphereBindings()
+//	if err != nil {
+//	    return nil, err
+//	}
+//	USERLIST = append(USERLIST, kubesphereUserList...)
     }
 
     sortTable()
     mergeAccounts()
 
     // return VALUES that processed USERLIST
-    return USERLIST, nil
+    //return USERLIST, nil
 }
 
-func processKubeSphereBindings ([]AccountInfo, error) {
+func processKubeSphereBindings() {
     // 초기화: USERLIST
-    USERLIST = []AccountInfo{}
+    //USERLIST = []AccountInfo{}
     containsWorkspaceRoleBinding := false
     containsGlobalRoleBinding := false
 
@@ -797,7 +798,7 @@ func processKubeSphereBindings ([]AccountInfo, error) {
     mergeAccounts()
 
     // return VALUES that processed USERLIST
-    return USERLIST, nil
+    //return USERLIST, nil
 }
 
 func addToTable(name string, kind string, info BindingInfo) {
